@@ -60,6 +60,83 @@ def get_geo_translate_func():
 
 geo_translate_func = get_geo_translate_func()
 
+class GeonameGISHelper(object):
+    def near_point(self, latitude, longitude, kms, order):
+        raise NotImplementedError
+
+    def aprox_tz(self, latitude, longitude):
+        cursor = connection.cursor()
+        flat = float(latitude)
+        flng = float(longitude)
+        for diff in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1):
+            minlat = flat - diff * 10
+            maxlat = flat + diff * 10
+            minlng = flng - diff
+            maxlng = flng + diff
+            tz = self.box_tz(cursor, minlat, maxlat, minlng, maxlng)
+            if tz:
+                return tz
+
+        return None
+
+    def box_tz(self, cursor, minlat, maxlat, minlng, maxlng):
+        raise NotImplementedError
+
+class PgSQLGeonameGISHelper(GeonameGISHelper):
+    def box(self, minlat, maxlat, minlng, maxlng):
+        return 'SetSRID(MakeBox2D(MakePoint(%s, %s), MakePoint(%s, %s)), 4326)' % \
+            (minlng, minlat, maxlng, maxlat)
+
+    def near_point(self, latitude, longitude, kms, order):
+        cursor = connection.cursor()
+        point = 'Transform(SetSRID(MakePoint(%s, %s), 4326), 32661)' % (longitude, latitude)
+        ord = ''
+        if order:
+            ord = 'ORDER BY distance(%s, gpoint_meters)' % point
+        cursor.execute('SELECT %(fields)s, distance(%(point)s, gpoint_meters) ' \
+                'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
+                'ST_DWithin(%(point)s, gpoint_meters, %(meters)s)' \
+                '%(order)s' %  \
+            {
+                'fields': Geoname.select_fields(),
+                'point': point,
+                'excluded': "'PCLI', 'PCL', 'PCLD', 'CONT'",
+                'meters': kms * 1000,
+                'order': ord,
+            }
+        )
+
+        return [(Geoname(*row[:-1]), row[-1]) for row in cursor.fetchall()]
+
+    def box_tz(self, cursor, minlat, maxlat, minlng, maxlng):
+        print('SELECT timezone_id FROM geoname WHERE ST_Within(gpoint, %(box)s) ' \
+            'AND timezone_id IS NOT NULL LIMIT 1' % \
+            {
+                'box': self.box(minlat, maxlat, minlng, maxlng),
+            }
+        )
+        cursor.execute('SELECT timezone_id FROM geoname WHERE ST_Within(gpoint, %(box)s) ' \
+            'AND timezone_id IS NOT NULL LIMIT 1' % \
+            {
+                'box': self.box(minlat, maxlat, minlng, maxlng),
+            }
+        )
+        row = cursor.fetchone()
+        if row:
+            return Timezone.objects.get(pk=row[0])
+
+        return None
+
+GIS_HELPERS = {
+    'postgresql_psycopg2': PgSQLGeonameGISHelper,
+    'postgresql': PgSQLGeonameGISHelper,
+}
+
+try:
+    GISHelper = GIS_HELPERS[settings.DATABASE_ENGINE]()
+except KeyError:
+    print 'Sorry, your database backend is not supported by the Geonames application'
+
 class Geoname(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, db_index=True)
@@ -254,11 +331,21 @@ class Geoname(models.Model):
     def distance(self, other):
         return Geoname.distance_points(self.latitude, self.longitude, other.latitude, other.longitude)
 
+    @staticmethod
+    def select_fields():
+        return 'id, name, ascii_name, latitude, longitude, fclass, fcode,' \
+                ' country_id, cc2, admin1_id, admin2_id, admin3_id, ' \
+                ' admin4_id, population, elevation, gtopo30, timezone_id, moddate'
+
     @classmethod
     def distance_points(cls, lat1, lon1, lat2, lon2, is_rad=False):
         if not is_rad:
             lat1, lon1, lat2, lon2 = map(lambda x: radians(float(x)), (lat1, lon1, lat2, lon2))
         return 6378.7 * acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1))
+
+    @staticmethod
+    def near_point(latitude, longitude, kms=20, order=True):
+        return GISHelper.near_point(latitude, longitude, kms, order)
 
 class GeonameAlternateName(models.Model):
     id = models.IntegerField(primary_key=True)

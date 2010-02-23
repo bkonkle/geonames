@@ -6,13 +6,14 @@ from getpass import getpass
 from datetime import date
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.db import connections, DEFAULT_DB_ALIAS
 
 FILES = [
     'http://download.geonames.org/export/dump/allCountries.zip',
     'http://download.geonames.org/export/dump/alternateNames.zip',
     'http://download.geonames.org/export/dump/admin1CodesASCII.txt',
     'http://download.geonames.org/export/dump/admin2Codes.txt',
-    'http://download.geonames.org/export/dump/featureCodes.txt',
+    'http://download.geonames.org/export/dump/featureCodes_en.txt',
     'http://download.geonames.org/export/dump/timeZones.txt',
     'http://download.geonames.org/export/dump/countryInfo.txt',
 ]
@@ -69,7 +70,7 @@ class GeonamesImporter(object):
             os.chdir(self.tmpdir)
         except OSError:
             os.chdir(self.tmpdir)
-            print 'Temporary directory exists, using already downloaded data'
+            print 'Temporary directory %s exists, using already downloaded data'%self.tmpdir
             return
 
         for f in FILES:
@@ -98,7 +99,7 @@ class GeonamesImporter(object):
 
     def import_fcodes(self):
         print 'Importing feature codes'
-        fd = open('featureCodes.txt')
+        fd = open('featureCodes_en.txt')
         line = fd.readline()[:-1]
         while line:
             codes, name, desc = line.split('\t')
@@ -453,7 +454,7 @@ class PsycoPg2Importer(GeonamesImporter):
         references_action = 'ALTER TABLE "%(table)s" DROP CONSTRAINT "%(table)s_%(field)s_fkey"'
         references_stmt = 'ALTER TABLE "%(table)s" ADD CONSTRAINT "%(table)s_%(field)s_fkey" FOREIGN KEY ("%(field)s") ' \
                 'REFERENCES "%(reftable)s" ("%(reffield)s") DEFERRABLE INITIALLY DEFERRED'
-        sql = sql_all(models.get_app('geonames'), no_style())
+        sql = sql_all(models.get_app('geonames'), no_style(), connections[DEFAULT_DB_ALIAS])
         for stmt in sql:
             if alter_re.search(stmt):
                 self.cursor.execute(alter_re.sub(alter_action, stmt))
