@@ -616,7 +616,7 @@ IMPORTERS = {
 def main(options):
     options = {'tmpdir':'geonames_temp'} #TODO: Make this a proper option
     try:
-        importer = IMPORTERS[settings.DATABASE_ENGINE]
+        importer = IMPORTERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]
     except KeyError:
         print 'Sorry, database engine "%s" is not supported' % \
                 settings.DATABASE_ENGINE
