@@ -520,8 +520,97 @@ class PsycoPg2Importer(GeonamesImporter):
     def set_import_date(self):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
 
+class MySQLImporter(GeonamesImporter):
+    def table_count(self, table):
+        return 0
+
+    def pre_import(self):
+        self.end_stmts = []
+        import re
+        from django.core.management.color import no_style
+        from django.core.management.sql import sql_all
+        from django.db import models
+        sys.path.append('../')
+        sys.path.append('../../')
+
+        alter_re = re.compile('^ALTER TABLE "(\w+)" ADD CONSTRAINT (\w+).*', re.I)
+        alter_action = 'ALTER TABLE "\g<1>" DROP CONSTRAINT "\g<2>"'
+        index_re = re.compile('^CREATE INDEX "(\w+)".*', re.I)
+        index_action = 'DROP INDEX "\g<1>"'
+        table_re = re.compile('^CREATE TABLE "(\w+)".*', re.I)
+        references_re = re.compile('"(\w+)".*?REFERENCES "(\w+)" \("(\w+)"\) DEFERRABLE INITIALLY DEFERRED')
+        references_action = 'ALTER TABLE "%(table)s" DROP CONSTRAINT "%(table)s_%(field)s_fkey"'
+        references_stmt = 'ALTER TABLE "%(table)s" ADD CONSTRAINT "%(table)s_%(field)s_fkey" FOREIGN KEY ("%(field)s") ' \
+                'REFERENCES "%(reftable)s" ("%(reffield)s")'
+        sql = sql_all(models.get_app('geonames'), no_style(), connections[DEFAULT_DB_ALIAS])
+        for stmt in sql:
+            if alter_re.search(stmt):
+                self.cursor.execute(alter_re.sub(alter_action, stmt))
+                self.end_stmts.append(stmt)
+            elif index_re.search(stmt):
+                self.cursor.execute(index_re.sub(index_action, stmt))
+                self.end_stmts.append(stmt)
+            elif table_re.search(stmt): 
+                table = table_re.search(stmt).group(1)
+                for m in  references_re.findall(stmt):
+                    self.cursor.execute(references_action % \
+                        { 
+                            'table': table,
+                            'field': m[0],
+                            'reftable': m[1],
+                            'reffield': m[2],
+                        })
+                    self.end_stmts.append(references_stmt % \
+                        {
+                            'table': table,
+                            'field': m[0],
+                            'reftable': m[1],
+                            'reffield': m[2],
+                        })
+                        
+        self.cursor.execute('COMMIT')
+
+    def post_import(self):
+        print 'Enabling constraings and generating indexes (be patient, this is the last step)'
+        self.insert_dummy_records()
+        for stmt in self.end_stmts:
+            self.cursor.execute(stmt)
+            self.commit()
+
+    def insert_dummy_records(self):
+        self.cursor.execute("UPDATE geoname SET country_id='' WHERE country_id IN (' ', '  ')")
+        self.cursor.execute("INSERT INTO country VALUES ('', '', -1, '', 'No country', 'No capital', 0, 0, '', '', '', '', '', '', '', '', 6295630)")
+        self.cursor.execute("INSERT INTO continent VALUES('', 'No continent', 6295630)")
+
+    def begin(self):
+        self.cursor.execute('BEGIN')
+
+    def commit(self):
+        self.cursor.execute('COMMIT')
+
+    def get_db_conn(self):
+        import psycopg2
+        conn_params = 'dbname=%s ' % self.db
+        if self.host:
+            conn_params += 'host=%s ' % self.host
+        if self.user:
+            conn_params += 'user=%s ' % self.user
+        if self.password:
+            conn_params += 'password=%s' % self.password
+
+        self.conn = psycopg2.connect(conn_params)
+        self.cursor = self.conn.cursor()
+    
+    def last_row_id(self, table=None, pk=None):
+        self.cursor.execute("SELECT CURRVAL('\"%s_%s_seq\"')" % (table, pk))
+        return self.cursor.fetchone()[0]
+    
+    def set_import_date(self):
+        self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
+
 IMPORTERS = {
     'postgresql_psycopg2': PsycoPg2Importer,
+    'mysql': MySQLImporter,
 }
 
 def main(options):
