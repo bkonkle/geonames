@@ -525,7 +525,9 @@ class PsycoPg2Importer(GeonamesImporter):
 
     def insert_dummy_records(self):
         self.cursor.execute("UPDATE geoname SET country_id='' WHERE country_id IN (' ', '  ')")
-        self.cursor.execute("INSERT INTO country VALUES ('', '', -1, '', 'No country', 'No capital', 0, 0, '', '', '', '', '', '', '', '', 6295630)")
+        self.cursor.execute("DELETE FROM country WHERE geoname_id=6295630")
+        self.cursor.execute("DELETE FROM continent WHERE geoname_id=6295630")
+        self.cursor.execute("INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES ('', '', -1, '', 'No country', 'No capital', 0, 0, '', '', '', '', '', '', '', '', 6295630)")
         self.cursor.execute("INSERT INTO continent VALUES('', 'No continent', 6295630)")
 
     def begin(self):
