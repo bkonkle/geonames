@@ -596,7 +596,7 @@ class MySQLImporter(GeonamesImporter):
         if self.user:
             conn_params += 'user=%s ' % self.user
         if self.password:
-            conn_params += 'password=%s' % self.password
+            conn_params += 'passwd=%s' % self.password
 
         self.conn = MySQLdb.connect(conn_params)
         self.cursor = self.conn.cursor()
