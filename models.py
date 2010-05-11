@@ -85,7 +85,7 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
             }
         cursor.execute('SELECT %(fields)s, distance(%(point)s, `point`) ' \
                 'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
-                'distance(%(point)s, `point`) < %(km)' \
+                'distance(%(point)s, `point`) < %(km)d' \
                 '%(order)s' %  \
             {
                 'fields': Geoname.select_fields(),
