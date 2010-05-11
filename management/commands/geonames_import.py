@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import connections, DEFAULT_DB_ALIAS
 
 FILES = [
-    'http://download.geonames.org/export/dump/allCountries.zip',
+    'http://download.geonames.org/export/dump/cities5000.zip',
     'http://download.geonames.org/export/dump/alternateNames.zip',
     'http://download.geonames.org/export/dump/admin1CodesASCII.txt',
     'http://download.geonames.org/export/dump/admin2Codes.txt',
@@ -78,7 +78,7 @@ class GeonamesImporter(object):
                 print 'Error fetching %s' % os.path.basename(f)
                 sys.exit(1)
 
-        for f in ('allCountries.zip', 'alternateNames.zip'):
+        for f in ('cities5000.zip', 'alternateNames.zip'):
             if os.system('unzip %s' % f) != 0:
                 print 'Error unzipping %s' % f
                 sys.exit(1)
@@ -247,7 +247,7 @@ class GeonamesImporter(object):
 
     def import_third_level_adm(self):
         print 'Importing third level administrative divisions'
-        fd = open('allCountries.txt')
+        fd = open('cities5000.txt')
         line = fd.readline()[:-1]
         while line:
             fields = line.split('\t')
@@ -290,7 +290,7 @@ class GeonamesImporter(object):
 
     def import_fourth_level_adm(self):
         print 'Importing fourth level administrative divisions'
-        fd = open('allCountries.txt')
+        fd = open('cities5000.txt')
         line = fd.readline()[:-1]
         while line:
             fields = line.split('\t')
@@ -341,7 +341,7 @@ class GeonamesImporter(object):
 
     def import_geonames(self):
         print 'Importing geonames (this is going to take a while)'
-        fd = open('allCountries.txt')
+        fd = open('cities5000.txt')
         line = fd.readline()[:-1]
         while line:
             fields = line.split('\t')
