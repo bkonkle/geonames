@@ -641,7 +641,7 @@ class MySQLImporter(GeonamesImporter):
         return self.cursor.fetchone()[0]
     
     def set_import_date(self):
-        self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
+        self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( Now() )')
 
 IMPORTERS = {
     'postgresql_psycopg2': PsycoPg2Importer,
