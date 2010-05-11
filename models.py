@@ -88,7 +88,7 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         return [(Geoname(*row[:-1]), row[-1]) for row in cursor.fetchall()]
 
 GIS_HELPERS = {
-    'mysql': MySQLGeonameGISHelper
+    'django.contrib.gis.db.backends.mysql': MySQLGeonameGISHelper
 }
 
 try:

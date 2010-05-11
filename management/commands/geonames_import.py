@@ -610,7 +610,7 @@ class MySQLImporter(GeonamesImporter):
 
 IMPORTERS = {
     'postgresql_psycopg2': PsycoPg2Importer,
-    'mysql': MySQLImporter,
+    'django.contrib.gis.db.backends.mysql': MySQLImporter,
 }
 
 def main(options):
