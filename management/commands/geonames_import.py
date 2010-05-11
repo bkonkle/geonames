@@ -590,7 +590,7 @@ class MySQLImporter(GeonamesImporter):
 
     def get_db_conn(self):
         import MySQLdb
-        conn_params = []
+        conn_params = {}
         conn_params['db'] = self.db
         if self.host:
             conn_params['host'] = self.host
@@ -624,7 +624,7 @@ def main(options):
         sys.exit(1)
 
     try:
-        imp = importer(host=settings.DATABASES['default']['HOST'],
+        imp = importer(host=settings.DATABASES['default'].get('HOST',None),
             user=settings.DATABASES['default']['USER'],
             password=settings.DATABASES['default']['PASSWORD'],
             db=settings.DATABASES['default']['NAME'],
