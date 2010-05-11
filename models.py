@@ -71,7 +71,7 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         point = "PointFromText('Point( %s %s)')" % (longitude, latitude)
         ord = ''
         if order:
-            ord = 'ORDER BY distance(%(point)s, `point`)' % point
+            ord = str('ORDER BY distance(%(point)s, `point`)' % point)
         print 'SELECT %(fields)s, distance(%(point1)s, `point`) ' \
                 'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
                 'distance(%(point2)s, `point`) < %(km)' \
