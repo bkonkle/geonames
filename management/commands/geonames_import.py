@@ -113,7 +113,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
 
             line = fd.readline()[:-1]
@@ -132,7 +132,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e)
 
             line = fd.readline()[:-1]
@@ -158,7 +158,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
             line = fd.readline()[:-1]
         fd.close()
@@ -176,7 +176,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
 
             self.time_zones[name] = self.last_row_id('time_zone', 'id') 
@@ -191,7 +191,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e)
         print '%d continent codes imported' % self.table_count('continent')
 
@@ -216,7 +216,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
             line = fd.readline()[:-1]
         fd.close()
@@ -234,7 +234,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 print "Got an error %s" % e
                 self.handle_exception(e, line)
 
@@ -260,7 +260,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
 
             self.admin2_codes.setdefault(country_id, {})
@@ -303,7 +303,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
 
             self.admin3_codes.setdefault(country_id, {})
@@ -355,7 +355,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
 
             self.admin4_codes.setdefault(country_id, {})
@@ -421,7 +421,7 @@ class GeonamesImporter(object):
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
-                    continue
+                    return True
                 self.handle_exception(e, line)
 
             line = fd.readline()[:-1]
