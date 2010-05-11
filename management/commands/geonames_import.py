@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import connections, DEFAULT_DB_ALIAS
 
 FILES = [
-    'http://download.geonames.org/export/dump/cities5000.zip',
+    'http://download.geonames.org/export/dump/allCountries.zip',
     'http://download.geonames.org/export/dump/alternateNames.zip',
     'http://download.geonames.org/export/dump/admin1CodesASCII.txt',
     'http://download.geonames.org/export/dump/admin2Codes.txt',
