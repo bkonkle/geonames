@@ -72,24 +72,26 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         ord = ''
         if order:
             ord = 'ORDER BY distance(%(point)s, `point`)' % point
-        print 'SELECT %(fields)s, distance(%(point)s, `point`) ' \
+        print 'SELECT %(fields)s, distance(%(point1)s, `point`) ' \
                 'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
-                'distance(%(point)s, `point`) < %(km)' \
+                'distance(%(point2)s, `point`) < %(km)' \
                 '%(order)s' %  \
             {
                 'fields': Geoname.select_fields(),
-                'point': point,
+                'point1': point,
+                'point2': point,
                 'excluded': "'PCLI', 'PCL', 'PCLD', 'CONT'",
                 'km': kms ,
                 'order': ord,
             }
-        cursor.execute('SELECT %(fields)s, distance(%(point)s, `point`) ' \
+        cursor.execute('SELECT %(fields)s, distance(%(point1)s, `point`) ' \
                 'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
-                'distance(%(point)s, `point`) < %(km)d' \
+                'distance(%(point2)s, `point`) < %(km)d' \
                 '%(order)s' %  \
             {
                 'fields': Geoname.select_fields(),
-                'point': point,
+                'point1': point,
+                'point2': point,
                 'excluded': "'PCLI', 'PCL', 'PCLD', 'CONT'",
                 'km': kms ,
                 'order': ord,
