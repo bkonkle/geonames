@@ -140,13 +140,13 @@ class GeonamesImporter(object):
         while line:
             id, geoname_id, lang, name, preferred, short = line.split('\t')
             if preferred in ('', '0'):
-                preferred = 'FALSE'
+                preferred = 'false'
             else:
-                preferred = 'TRUE' 
+                preferred = 'true' 
             if short in ('', '0'):
-                short = 'FALSE'
+                short = 'false'
             else:
-                short = 'TRUE'
+                short = 'true'
             try:
                 self.cursor.execute('INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
             except Exception, e:
