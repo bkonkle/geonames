@@ -589,8 +589,8 @@ class MySQLImporter(GeonamesImporter):
         self.cursor.execute('COMMIT')
 
     def get_db_conn(self):
-        import psycopg2
-        conn_params = 'dbname=%s ' % self.db
+        import MySQLdb
+        conn_params = 'db=%s ' % self.db
         if self.host:
             conn_params += 'host=%s ' % self.host
         if self.user:
@@ -598,7 +598,7 @@ class MySQLImporter(GeonamesImporter):
         if self.password:
             conn_params += 'password=%s' % self.password
 
-        self.conn = psycopg2.connect(conn_params)
+        self.conn = MySQLdb.connect(conn_params)
         self.cursor = self.conn.cursor()
     
     def last_row_id(self, table=None, pk=None):
@@ -622,11 +622,18 @@ def main(options):
                 settings.DATABASE_ENGINE
         sys.exit(1)
 
-    imp = importer(host=settings.DATABASE_HOST,
-        user=settings.DATABASE_USER,
-        password=settings.DATABASE_PASSWORD,
-        db=settings.DATABASE_NAME,
-        tmpdir=options['tmpdir'])
+    try:
+        imp = importer(host=settings.DATABASES['default']['HOST'],
+            user=settings.DATABASES['default']['USER'],
+            password=settings.DATABASES['default']['PASSWORD'],
+            db=settings.DATABASES['default']['NAME'],
+            tmpdir=options['tmpdir'])
+    except AttributeError:
+        imp = importer(host=settings.DATABASE_HOST,
+            user=settings.DATABASE_USER,
+            password=settings.DATABASE_PASSWORD,
+            db=settings.DATABASE_NAME,
+            tmpdir=options['tmpdir'])
 
     imp.fetch()
     imp.get_db_conn()
