@@ -590,15 +590,16 @@ class MySQLImporter(GeonamesImporter):
 
     def get_db_conn(self):
         import MySQLdb
-        conn_params = 'db=%s ' % self.db
+        conn_params = []
+        conn_params['db'] = self.db
         if self.host:
-            conn_params += 'host=%s ' % self.host
+            conn_params['host'] = self.host
         if self.user:
-            conn_params += 'user=%s ' % self.user
+            conn_params['user'] = self.user
         if self.password:
-            conn_params += 'passwd=%s' % self.password
+            conn_params['passwd'] = self.password
 
-        self.conn = MySQLdb.connect(conn_params)
+        self.conn = MySQLdb.connect(**conn_params)
         self.cursor = self.conn.cursor()
     
     def last_row_id(self, table=None, pk=None):
@@ -628,6 +629,7 @@ def main(options):
             password=settings.DATABASES['default']['PASSWORD'],
             db=settings.DATABASES['default']['NAME'],
             tmpdir=options['tmpdir'])
+        print "I was a success"
     except AttributeError:
         imp = importer(host=settings.DATABASE_HOST,
             user=settings.DATABASE_USER,
