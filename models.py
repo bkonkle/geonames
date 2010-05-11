@@ -372,7 +372,7 @@ class Admin1Code(models.Model):
     code = models.CharField(max_length=5)
     name = models.TextField()
     ascii_name = models.TextField()
-    geom = models.GeometryField(null=True, blank=True)
+    geom = models.GeometryField()
     class Meta:
         db_table = 'admin1_code'
 
@@ -383,7 +383,7 @@ class Admin2Code(models.Model):
     code = models.CharField(max_length=30)
     name = models.TextField()
     ascii_name = models.TextField()
-    geom = models.GeometryField(null=True, blank=True)
+    geom = models.GeometryField()
     class Meta:
         db_table = 'admin2_code'
 
@@ -395,7 +395,7 @@ class Admin3Code(models.Model):
     code = models.CharField(max_length=30)
     name = models.TextField()
     ascii_name = models.TextField()
-    geom = models.GeometryField(null=True, blank=True)
+    geom = models.GeometryField()
     class Meta:
         db_table = 'admin3_code'
 
@@ -408,7 +408,7 @@ class Admin4Code(models.Model):
     code = models.CharField(max_length=30)
     name = models.TextField()
     ascii_name = models.TextField()
-    geom = models.GeometryField(null=True, blank=True)
+    geom = models.GeometryField()
     class Meta:
         db_table = 'admin4_code'
 
