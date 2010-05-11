@@ -92,7 +92,7 @@ GIS_HELPERS = {
 }
 
 try:
-    GISHelper = GIS_HELPERS[(settings.DATABASES and DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]()
+    GISHelper = GIS_HELPERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]()
 except (KeyError,AttributeError):
     print 'Sorry, your database backend is not supported by the Geonames application'
 
