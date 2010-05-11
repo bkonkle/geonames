@@ -291,7 +291,7 @@ class Geoname(models.Model):
         return Geoname.distance_points(self.latitude, self.longitude, other.latitude, other.longitude)
     
     def near_me(self, kms=20, order=True):
-        return near_point(self.point.x, self.point.y, kms=kms, order=order)
+        return Geoname.near_point(self.point.x, self.point.y, kms=kms, order=order)
 
     @staticmethod
     def select_fields():
