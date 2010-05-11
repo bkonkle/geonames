@@ -1,8 +1,7 @@
 *.pyc
-/.hgignore
+*.gitignore
+*.hgignore
+*.settings
+*.project
+*.pydevproject
 /.gitignore
-/.gitignore
-/.hgignore
-/.settings
-/.project
-/.pydevproject
