@@ -318,7 +318,7 @@ class GeonameAlternateName(models.Model):
         db_table = 'alternate_name'
 
     def __unicode__(self):
-        return self.alternateName
+        return "%s -> %s" % (self.name,self.geoname.name)
 
 class Continent(models.Model):
     code = models.CharField(max_length=2, primary_key=True)
