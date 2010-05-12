@@ -67,38 +67,17 @@ class GeonameGISHelper(object):
 class MySQLGeonameGISHelper(GeonameGISHelper):
 
     def near_point(self, latitude, longitude, kms, order):
-        cursor = connection.cursor()
-        point = "PointFromText('Point( %s %s)')" % (longitude, latitude)
-        ord = ''
+        dist = "distance(PointFromText('Point( %s %s)'),`point`)" % (latitude, longitude)
         if order:
-            ord = str('ORDER BY distance(%(point)s, `point`)' % point)
-        print 'SELECT %(fields)s, distance(%(point1)s, `point`) ' \
-                'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
-                'distance(%(point2)s, `point`) < %(km)d' \
-                '%(order)s' %  \
-            {
-                'fields': Geoname.select_fields(),
-                'point1': point,
-                'point2': point,
-                'excluded': "'PCLI', 'PCL', 'PCLD', 'CONT'",
-                'km': kms ,
-                'order': ord,
-            }
-        cursor.execute('SELECT %(fields)s, distance(%(point1)s, `point`) ' \
-                'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
-                'distance(%(point2)s, `point`) < %(km)d' \
-                '%(order)s' %  \
-            {
-                'fields': Geoname.select_fields(),
-                'point1': point,
-                'point2': point,
-                'excluded': "'PCLI', 'PCL', 'PCLD', 'CONT'",
-                'km': kms ,
-                'order': ord,
-            }
+            order_by = ['distance']
+        else:
+            order_by = None
+        near_objects = Geoname.objects.extra(
+            select = { 'distance':dist },
+            where = [ "%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } ],
+            order_by = order_by
         )
-
-        return [(Geoname(*row[:-1]), row[-1]) for row in cursor.fetchall()]
+        return near_objects
 
 GIS_HELPERS = {
     'django.contrib.gis.db.backends.mysql': MySQLGeonameGISHelper
@@ -304,7 +283,7 @@ class Geoname(models.Model):
         return Geoname.distance_points(self.latitude, self.longitude, other.latitude, other.longitude)
     
     def near_me(self, kms=20, order=True):
-        return Geoname.near_point(self.point.x, self.point.y, kms=kms, order=order)
+        return Geoname.near_point(self.latitude, self.longitude, kms=kms, order=order)
 
     @staticmethod
     def select_fields():
