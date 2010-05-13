@@ -573,7 +573,6 @@ class MySQLImporter(GeonamesImporter):
         except:
             raise Exception("Bad file.")
         fullpath = "%s/%s" % (os.getcwd(),filename)
-        raise Exception("Full path is %s" % fullpath)
         self.cursor.execute("LOAD DATA INFILE '%(filename)s' INTO TABLE `%(tablename)s`" % (tablename, filename))
 
     def pre_import(self):
