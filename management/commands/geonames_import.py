@@ -566,7 +566,7 @@ class MySQLImporter(GeonamesImporter):
 
     def import_file(self, tablename, filename):
         import re
-        if re.search(r'[^w\.]',tablename):
+        if re.search(r'[^\w\.]',tablename):
             raise Exception("Illegal tablename: %s" % tablename)
         try:
             open(filename)
