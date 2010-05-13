@@ -382,6 +382,7 @@ class GeonamesImporter(object):
             latitude, longitude, fclass, fcode, country_id, cc2 = fields[4:10]
             population, elevation, gtopo30 = fields[14:17]
             if fclass != 'P': #only import populated places!
+                line = fd.readline()[:-1]
                 continue
             moddate = fields[18]
             if elevation == '':
