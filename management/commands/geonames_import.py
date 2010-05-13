@@ -78,7 +78,7 @@ class GeonamesImporter(object):
                 print 'Error fetching %s' % os.path.basename(f)
                 sys.exit(1)
 
-        for f in ('cities5000.zip', 'alternateNames.zip'):
+        for f in ('allCountries.zip', 'alternateNames.zip'):
             if os.system('unzip %s' % f) != 0:
                 print 'Error unzipping %s' % f
                 sys.exit(1)
@@ -272,7 +272,7 @@ class GeonamesImporter(object):
 
     def import_third_level_adm(self):
         print 'Importing third level administrative divisions'
-        fd = open('cities5000.txt')
+        fd = open('allCountries.txt')
         line = fd.readline()[:-1]
         while line:
             fields = line.split('\t')
@@ -318,7 +318,7 @@ class GeonamesImporter(object):
 
     def import_fourth_level_adm(self):
         print 'Importing fourth level administrative divisions'
-        fd = open('cities5000.txt')
+        fd = open('allCountries.txt')
         line = fd.readline()[:-1]
         while line:
             fields = line.split('\t')
@@ -372,13 +372,15 @@ class GeonamesImporter(object):
 
     def import_geonames(self):
         print 'Importing geonames (this is going to take a while)'
-        fd = open('cities5000.txt')
+        fd = open('allCountries.txt')
         line = fd.readline()[:-1]
         while line:
             fields = line.split('\t')
             id, name, ascii_name = fields[:3]
             latitude, longitude, fclass, fcode, country_id, cc2 = fields[4:10]
             population, elevation, gtopo30 = fields[14:17]
+            if fclass != 'P': #only import populated places!
+                continue
             moddate = fields[18]
             if elevation == '':
                 elevation = 0
