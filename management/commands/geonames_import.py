@@ -141,6 +141,8 @@ class GeonamesImporter(object):
 
     def import_alternate_names(self):
         print 'Importing alternate names (this is going to take a while)'
+        if hasattr(self,'import_file'):
+            self.import_file('alternate_name','alternateNames.txt')
         fd = open('alternateNames.txt')
         line = fd.readline()[:-1]
         while line:
@@ -561,6 +563,18 @@ class PsycoPg2Importer(GeonamesImporter):
 class MySQLImporter(GeonamesImporter):
     def table_count(self, table):
         return 0
+
+    def import_file(self, tablename, filename):
+        import re
+        if re.search('[^w.]',tablename):
+            raise Exception("Illegal tablename.")
+        try:
+            open(filename)
+        except:
+            raise Exception("Bad file.")
+        fullpath = "%s/%s/%" % (os.getcwd(),self.tmpdir,filename)
+        raise Exception("Full path is %s" % fullpath)
+        self.cursor.execute("LOAD DATA INFILE '%(filename)s' INTO TABLE `%(tablename)s`" % (tablename, filename))
 
     def pre_import(self):
         self.end_stmts = []
