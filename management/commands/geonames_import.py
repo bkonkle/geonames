@@ -237,7 +237,7 @@ class GeonamesImporter(object):
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
                     return True
-                print "Got an error %s" % e
+                print "Got an error %s \n\n%s" % (e, self.cursor.info())
                 self.handle_exception(e, line)
 
             self.admin1_codes.setdefault(country_id, {})
@@ -382,6 +382,7 @@ class GeonamesImporter(object):
             latitude, longitude, fclass, fcode, country_id, cc2 = fields[4:10]
             population, elevation, gtopo30 = fields[14:17]
             if fclass != 'P': #only import populated places!
+                line = fd.readline()[:-1]
                 continue
             moddate = fields[18]
             if elevation == '':
@@ -573,6 +574,7 @@ class MySQLImporter(GeonamesImporter):
         except:
             raise Exception("Bad file.")
         fullpath = "%s/%s" % (os.getcwd(),filename)
+        print "LOAD DATA INFILE '%(filename)s' INTO TABLE `%(tablename)s`" % {'tablename':tablename, 'filename':filename}
         self.cursor.execute("LOAD DATA INFILE '%(filename)s' INTO TABLE `%(tablename)s`" % {'tablename':tablename, 'filename':filename})
 
     def pre_import(self):
