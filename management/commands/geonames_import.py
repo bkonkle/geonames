@@ -231,9 +231,9 @@ class GeonamesImporter(object):
         while line:
             country_and_code, name, ascii_name, geoname_id = line.split('\t')
             country_id, code = country_and_code.split('.')
-            print "Right now, the values is: name=%(name)" % { 'name':name}
+            print "Right now, the values is: name=%(name)s" % { 'name':name}
             name = unicode(name,'utf-8')
-            print "After conversion, the value is: name=%(name)" % { 'name':name}
+            print "After conversion, the value is: name=%(name)s" % { 'name':name}
             raise Exception("How do you like me now?")
             try:
                 self.cursor.execute('INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
