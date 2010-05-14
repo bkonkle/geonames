@@ -236,6 +236,7 @@ class GeonamesImporter(object):
             except Exception, inst:
                 raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
             try:
+                print(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)' % (country_id, geoname_id, code, name, ascii_name))
                 self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
             except Exception, e:
                 print(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)' % (country_id, geoname_id, code, name, ascii_name))
