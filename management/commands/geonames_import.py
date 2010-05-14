@@ -231,10 +231,7 @@ class GeonamesImporter(object):
         while line:
             country_and_code, name, ascii_name, geoname_id = line.split('\t')
             country_id, code = country_and_code.split('.')
-            print "Right now, the values is: name=%(name)s" % { 'name':name}
             name = unicode(name,'utf-8')
-            print "After conversion, the value is: name=%(name)s" % { 'name':name}
-            raise Exception("How do you like me now?")
             try:
                 self.cursor.execute('INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
             except Exception, e:
@@ -257,6 +254,7 @@ class GeonamesImporter(object):
         while line:
             codes, name, ascii_name, geoname_id = line.split('\t')
             country_id, adm1, code = codes.split('.', 2)
+            name = unicode(name,'utf-8')
             try:
                 admin1 = self.admin1_codes[country_id][adm1]
             except KeyError:
@@ -288,6 +286,7 @@ class GeonamesImporter(object):
                 continue
             geoname_id = fields[0]
             name = fields[1]
+            name = unicode(name,'utf-8')
             ascii_name = fields[2]
             country_id = fields[8]
             admin1 = fields[10]
@@ -334,6 +333,7 @@ class GeonamesImporter(object):
                 continue
             geoname_id = fields[0]
             name = fields[1]
+            name = unicode(name,'utf-8')
             ascii_name = fields[2]
             country_id = fields[8]
             admin1 = fields[10]
@@ -396,6 +396,7 @@ class GeonamesImporter(object):
             except KeyError:
                 timezone_id = None
             #XXX
+            name = unicode(name,'utf-8')
             admin1 = fields[10]
             admin2 = fields[11]
             admin3 = fields[12]
