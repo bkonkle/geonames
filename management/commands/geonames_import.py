@@ -678,7 +678,11 @@ class MySQLImporter(GeonamesImporter):
         conn_params['use_unicode'] = True
 
         self.conn = MySQLdb.connect(**conn_params)
+        self.conn.set_character_set('utf8')
         self.cursor = self.conn.cursor()
+        self.cursor.execute('SET NAMES utf8;')
+        self.cursor.execute('SET CHARACTER SET utf8;')
+        self.cursor.execute('SET character_set_connection=utf8;')
     
     def last_row_id(self, table=None, pk=None):
         self.cursor.execute("SELECT MAX(%s) from %s" % (pk,table))
