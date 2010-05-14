@@ -238,6 +238,7 @@ class GeonamesImporter(object):
             try:
                 self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
             except Exception, e:
+                print(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)' % (country_id, geoname_id, code, name, ascii_name))
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
                     return True
