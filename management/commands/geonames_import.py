@@ -653,6 +653,8 @@ class MySQLImporter(GeonamesImporter):
             conn_params['user'] = self.user
         if self.password:
             conn_params['passwd'] = self.password
+            
+        conn_params['use_unicode'] = True
 
         self.conn = MySQLdb.connect(**conn_params)
         self.cursor = self.conn.cursor()
