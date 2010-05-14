@@ -94,7 +94,7 @@ class GeonamesImporter(object):
         sys.exit(1)
 
     def table_count(self, table):
-        self.cursor.execute('SELECT COUNT(*) FROM %s' % table)
+        self.cursor.execute(u'SELECT COUNT(*) FROM %s' % table)
         return self.cursor.fetchone()[0]
 
     def import_fcodes(self):
@@ -109,7 +109,7 @@ class GeonamesImporter(object):
                 line = fd.readline()[:-1]
                 continue
             try:
-                self.cursor.execute('INSERT INTO feature_code (code, fclass, name, description) VALUES (%s, %s, %s, %s)', (code, fclass, name, desc))
+                self.cursor.execute(u'INSERT INTO feature_code (code, fclass, name, description) VALUES (%s, %s, %s, %s)', (code, fclass, name, desc))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -128,7 +128,7 @@ class GeonamesImporter(object):
         while line:
             fields = line.split('\t')
             try:
-                self.cursor.execute('INSERT INTO iso_language (iso_639_3, iso_639_2, iso_639_1, language_name) VALUES (%s, %s, %s, %s)', fields)
+                self.cursor.execute(u'INSERT INTO iso_language (iso_639_3, iso_639_2, iso_639_1, language_name) VALUES (%s, %s, %s, %s)', fields)
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -156,7 +156,7 @@ class GeonamesImporter(object):
             else:
                 short = True
             try:
-                self.cursor.execute('INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
+                self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -174,7 +174,7 @@ class GeonamesImporter(object):
         while line:
             name, gmt, dst = line.split('\t')
             try:
-                self.cursor.execute('INSERT INTO time_zone (name, gmt_offset, dst_offset) VALUES (%s, %s, %s)', (name, gmt, dst))
+                self.cursor.execute(u'INSERT INTO time_zone (name, gmt_offset, dst_offset) VALUES (%s, %s, %s)', (name, gmt, dst))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -189,7 +189,7 @@ class GeonamesImporter(object):
     def import_continent_codes(self):
         for continent in CONTINENT_CODES:
             try:
-                self.cursor.execute('INSERT INTO continent (code, name, geoname_id) VALUES (%s, %s, %s)', continent)
+                self.cursor.execute(u'INSERT INTO continent (code, name, geoname_id) VALUES (%s, %s, %s)', continent)
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -214,7 +214,7 @@ class GeonamesImporter(object):
             if fields[6] == '':
                 fields[6] = 0
             try:
-                self.cursor.execute('INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields[:17])
+                self.cursor.execute(u'INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields[:17])
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -236,7 +236,7 @@ class GeonamesImporter(object):
             except Exception, inst:
                 raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
             try:
-                self.cursor.execute('INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
+                self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -266,7 +266,7 @@ class GeonamesImporter(object):
             except KeyError:
                 admin1 = None
             try:
-                self.cursor.execute('INSERT INTO admin2_code (country_id, admin1_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s)', (country_id, admin1, geoname_id, code, name, ascii_name))
+                self.cursor.execute(u'INSERT INTO admin2_code (country_id, admin1_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s)', (country_id, admin1, geoname_id, code, name, ascii_name))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -313,7 +313,7 @@ class GeonamesImporter(object):
                     except KeyError:
                         pass
             try:
-                self.cursor.execute('INSERT INTO admin3_code (country_id, admin1_id, admin2_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, geoname_id, admin3, name, ascii_name))
+                self.cursor.execute(u'INSERT INTO admin3_code (country_id, admin1_id, admin2_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, geoname_id, admin3, name, ascii_name))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -369,7 +369,7 @@ class GeonamesImporter(object):
                         except KeyError:
                             pass
             try:
-                self.cursor.execute('INSERT INTO admin4_code (country_id, admin1_id, admin2_id, admin3_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, admin3_id, geoname_id, admin4, name, ascii_name))
+                self.cursor.execute(u'INSERT INTO admin4_code (country_id, admin1_id, admin2_id, admin3_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, admin3_id, geoname_id, admin4, name, ascii_name))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
@@ -442,7 +442,7 @@ class GeonamesImporter(object):
                 except KeyError:
                     pass
             try:
-                self.cursor.execute('INSERT INTO geoname (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
+                self.cursor.execute(u'INSERT INTO geoname (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
             except Exception, e:
                 if 'Duplicate' in str(e):
                     #print "I think the data was already entered."
