@@ -370,6 +370,9 @@ class Admin1Code(models.Model):
     geom = models.GeometryField()
     class Meta:
         db_table = 'admin1_code'
+    
+    def __unicode__(self):
+        return self.name
 
 class Admin2Code(models.Model):
     country = models.ForeignKey(Country, db_index=True)
@@ -380,7 +383,10 @@ class Admin2Code(models.Model):
     ascii_name = models.TextField()
     geom = models.GeometryField()
     class Meta:
-        db_table = 'admin2_code'
+        db_table = 'admin2_code'    
+    def __unicode__(self):
+        return self.name
+
 
 class Admin3Code(models.Model):
     country = models.ForeignKey(Country, db_index=True)
@@ -392,7 +398,10 @@ class Admin3Code(models.Model):
     ascii_name = models.TextField()
     geom = models.GeometryField()
     class Meta:
-        db_table = 'admin3_code'
+        db_table = 'admin3_code'    
+    def __unicode__(self):
+        return self.name
+
 
 class Admin4Code(models.Model):
     country = models.ForeignKey(Country)
@@ -405,7 +414,10 @@ class Admin4Code(models.Model):
     ascii_name = models.TextField()
     geom = models.GeometryField()
     class Meta:
-        db_table = 'admin4_code'
+        db_table = 'admin4_code'    
+    def __unicode__(self):
+        return self.name
+
 
 class FeatureCode(models.Model):
     code = models.CharField(max_length=7, primary_key=True)
@@ -414,7 +426,10 @@ class FeatureCode(models.Model):
     description = models.TextField()
 
     class Meta:
-        db_table = 'feature_code'
+        db_table = 'feature_code'    
+    def __unicode__(self):
+        return self.name
+
 
 class Timezone(models.Model):
     name = models.CharField(max_length=200)
@@ -422,7 +437,10 @@ class Timezone(models.Model):
     dst_offset = models.DecimalField(max_digits=4, decimal_places=2)
 
     class Meta:
-        db_table = 'time_zone'
+        db_table = 'time_zone'    
+    def __unicode__(self):
+        return self.name
+
 
 class GeonamesUpdate(models.Model):
     updated_date = models.DateField()
