@@ -88,8 +88,6 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
             where = [ "%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } ],
             order_by = order_by
         )
-        print near_objects.query
-        raise Exception(near_objects.query)
         return near_objects
 
 GIS_HELPERS = {
