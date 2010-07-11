@@ -89,6 +89,7 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
             params = [min_lat, max_lat, min_long, max_long],
             order_by = order_by
         )
+        print near_objects.query
         return near_objects
 
 GIS_HELPERS = {
