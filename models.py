@@ -75,10 +75,10 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         else:
             order_by = None
         # fast approximation to eliminate points outside of our search
-        max_lat = float(latitude) + degrees(kms/EARTH_RADIUS);
-        min_lat = float(latitude) - degrees(kms/EARTH_RADIUS);
-        max_long = float(longitude) + degrees(kms/EARTH_RADIUS/cos(radians(latitude)));
-        min_long = float(longitude) - degrees(kms/EARTH_RADIUS/cos(radians(latitude)));
+        max_lat = Decimal(latitude) + Decimal(degrees(kms/EARTH_RADIUS))
+        min_lat = Decimal(latitude) - Decimal(degrees(kms/EARTH_RADIUS))
+        max_long = Decimal(longitude) + Decimal(degrees(kms/EARTH_RADIUS/cos(radians(latitude))))
+        min_long = Decimal(longitude) - Decimal(degrees(kms/EARTH_RADIUS/cos(radians(latitude))))
         near_objects = Geoname.objects.all()
         near_objects = near_objects.filter(latitude__gte=min_lat, longitude__gte=min_long)
         near_objects = near_objects.filter(latitude__lte=max_lat, longitude__lte=max_long)
