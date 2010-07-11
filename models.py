@@ -84,10 +84,7 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         near_objects = near_objects.filter(latitude__lte=max_lat, longitude__lte=max_long)
         near_objects = near_object.extra(
             select = { 'distance':dist },
-            where = [
-                        "%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } 
-                    ],
-            params = [min_lat, max_lat, min_long, max_long],
+            where = ["%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } ],
             order_by = order_by
         )
         return near_objects
