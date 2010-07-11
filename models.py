@@ -82,11 +82,12 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         near_objects = Geoname.objects.all()
         near_objects = near_objects.filter(latitude__gte=str(min_lat), longitude__gte=str(min_long))
         near_objects = near_objects.filter(latitude__lte=str(max_lat), longitude__lte=str(max_long))
-        near_objects = near_objects.extra(
-            select = { 'distance':dist },
-            where = ["%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } ],
-            order_by = order_by
-        )
+        if near_objects.count():
+            near_objects = near_objects.extra(
+                select = { 'distance':dist },
+                where = ["%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } ],
+                order_by = order_by
+            )
         return near_objects
 
 GIS_HELPERS = {
