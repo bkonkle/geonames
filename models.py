@@ -69,7 +69,7 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
     def near_point(self, latitude, longitude, kms, order):
         from math import degrees, radians
         EARTH_RADIUS=3956.547
-        dist = "fn_distance_cosine_km(PointFromText('Point( %s %s)'),`point`)" % (latitude, longitude)
+        dist = "fn_distance_cosine_km(%f, %f, latitude, longitude)" % (latitude, longitude)
         if order:
             order_by = ['distance']
         else:
