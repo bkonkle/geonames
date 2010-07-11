@@ -79,11 +79,12 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         min_lat = float(latitude) - degrees(kms/EARTH_RADIUS);
         max_long = float(longitude) + degrees(kms/EARTH_RADIUS/cos(radians(latitude)));
         min_long = float(longitude) - degrees(kms/EARTH_RADIUS/cos(radians(latitude)));
-        near_objects = Geoname.objects.extra(
+        near_objects = Geoname.objects.all()
+        near_objects = near_objects.filter(latitude__gte=min_lat, longitude__gte=min_long)
+        near_objects = near_objects.filter(latitude__lte=max_lat, longitude__lte=max_long)
+        near_objects = near_object.extra(
             select = { 'distance':dist },
             where = [
-                        'latitude BETWEEN %f and %f', 
-                        'longitude BETWEEN %f and %f', 
                         "%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } 
                     ],
             params = [min_lat, max_lat, min_long, max_long],
