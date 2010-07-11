@@ -67,12 +67,22 @@ class GeonameGISHelper(object):
 class MySQLGeonameGISHelper(GeonameGISHelper):
 
     def near_point(self, latitude, longitude, kms, order):
+        EARTH_RADIUS=3956.547
         dist = "distance(PointFromText('Point( %s %s)'),`point`)" % (latitude, longitude)
         if order:
             order_by = ['distance']
         else:
             order_by = None
+        # fast approximation to eliminate points outside of our search
+        max_lat = latitude + degrees(kms/EARTH_RADIUS);
+        min_lat = latitude - degrees(kms/EARTH_RADIUS);
+        max_long = longitude + degrees(kms/EARTH_RADIUS/cos(radians(latitude)));
+        min_long = longitude - degrees(kms/EARTH_RADIUS/cos(radians(latitude)));
         near_objects = Geoname.objects.extra(
+            where = ['X(`point`) BETWEEN %f and %f', 'Y(`point`) BETWEEN %f and %f' ],
+            params = [min_lat, max_lat, min_long, max_long]
+        )
+        near_objects = near_objects.extra(
             select = { 'distance':dist },
             where = [ "%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } ],
             order_by = order_by
