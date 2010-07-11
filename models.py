@@ -82,14 +82,13 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         near_objects = Geoname.objects.extra(
             select = { 'distance':dist },
             where = [
-                        'X(`point`) BETWEEN %f and %f', 
-                        'Y(`point`) BETWEEN %f and %f', 
+                        'latitude BETWEEN %f and %f', 
+                        'longitude BETWEEN %f and %f', 
                         "%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } 
                     ],
             params = [min_lat, max_lat, min_long, max_long],
             order_by = order_by
         )
-        print near_objects.query
         return near_objects
 
 GIS_HELPERS = {
