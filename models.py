@@ -84,7 +84,7 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
             where = [
                         'X(`point`) BETWEEN %f and %f', 
                         'Y(`point`) BETWEEN %f and %f', 
-                        "%(dist)s < %%d" % { 'dist':dist, 'kms':kms } 
+                        "%(dist)s < %(kms)d" % { 'dist':dist, 'kms':kms } 
                     ],
             params = [min_lat, max_lat, min_long, max_long],
             order_by = order_by
