@@ -1,0 +1,5 @@
+graft geonames/gis
+graft geonames/sql
+
+global-exclude *~
+global-exclude *.pyc

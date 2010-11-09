@@ -1,0 +1,3 @@
+This is a fork of a project originally created by Alberto García Hierro
+(https://github.com/fiam/geonames).  My goal is to add distutils packaging so
+that it can be easily installed by Pip, and I may add more as I go along.
