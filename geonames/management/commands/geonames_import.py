@@ -693,14 +693,18 @@ class MySQLImporter(GeonamesImporter):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( Now() )')
 
 IMPORTERS = {
-    'postgresql_psycopg2': PsycoPg2Importer,
+    'django.db.backends.postgresql_psycopg2': PsycoPg2Importer,
     'django.contrib.gis.db.backends.mysql': MySQLImporter,
 }
 
 def main(options):
     options = {'tmpdir':'geonames_temp'} #TODO: Make this a proper option
     try:
-        importer = IMPORTERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]
+        db_engine = (settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE
+        if db_engine == 'postgresql_psycopg2':
+            # Add the full path to psycopg2 if it's not already there
+            db_engine = 'django.db.backends.postgresql_psycopg2'
+        importer = IMPORTERS[db_engine]
     except KeyError:
         print 'Sorry, database engine "%s" is not supported' % \
                 settings.DATABASE_ENGINE
