@@ -1,6 +1,6 @@
+import optparse
 import os
 import sys
-from optparse import OptionParser
 from warnings import filterwarnings
 from getpass import getpass
 from datetime import date
@@ -698,37 +698,42 @@ IMPORTERS = {
     'django.contrib.gis.db.backends.mysql': MySQLImporter,
 }
 
-def main(options):
-    options = {'tmpdir':'geonames_temp'} #TODO: Make this a proper option
-    try:
-        importer = IMPORTERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]
-    except KeyError:
-        print 'Sorry, database engine "%s" is not supported' % \
-                settings.DATABASE_ENGINE
-        sys.exit(1)
-
-    try:
-        imp = importer(host=settings.DATABASES['default'].get('HOST',None),
-            user=settings.DATABASES['default']['USER'],
-            password=settings.DATABASES['default']['PASSWORD'],
-            db=settings.DATABASES['default']['NAME'],
-            tmpdir=options['tmpdir'])
-        print "I was a success"
-    except AttributeError:
-        imp = importer(host=settings.DATABASE_HOST,
-            user=settings.DATABASE_USER,
-            password=settings.DATABASE_PASSWORD,
-            db=settings.DATABASE_NAME,
-            tmpdir=options['tmpdir'])
-
-    imp.fetch()
-    imp.get_db_conn()
-    imp.import_all()
-    imp.set_import_date()
-    imp.cleanup()
 
 class Command(BaseCommand):
     help = "Geonames import command."
+    
+    option_list = BaseCommand.option_list + ( 
+        optparse.make_option('-t', '--tmpdir',
+            dest='tmpdir',
+            default='/tmp/geonames_temp',
+            help='The temporary directory for the geonames file.'
+        ),
+    )
 
     def handle(self, *args, **options):
-        main(options)
+        try:
+            importer = IMPORTERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]
+        except KeyError:
+            print 'Sorry, database engine "%s" is not supported' % \
+                    settings.DATABASE_ENGINE
+            sys.exit(1)
+
+        try:
+            imp = importer(host=settings.DATABASES['default'].get('HOST',None),
+                user=settings.DATABASES['default']['USER'],
+                password=settings.DATABASES['default']['PASSWORD'],
+                db=settings.DATABASES['default']['NAME'],
+                tmpdir=options['tmpdir'])
+            print "I was a success"
+        except AttributeError:
+            imp = importer(host=settings.DATABASE_HOST,
+                user=settings.DATABASE_USER,
+                password=settings.DATABASE_PASSWORD,
+                db=settings.DATABASE_NAME,
+                tmpdir=options['tmpdir'])
+
+        imp.fetch()
+        imp.get_db_conn()
+        imp.import_all()
+        imp.set_import_date()
+        imp.cleanup()
