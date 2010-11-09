@@ -693,8 +693,7 @@ class MySQLImporter(GeonamesImporter):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( Now() )')
 
 IMPORTERS = {
-    'postgresql_psycopg2': PsycoPg2Importer,
-    'django.db.backends.postgresql_psycopg2': PsycoPg2Importer,
+    'django.contrib.gis.db.backends.postgis': PsycoPg2Importer,
     'django.contrib.gis.db.backends.mysql': MySQLImporter,
 }
 
