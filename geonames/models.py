@@ -160,7 +160,7 @@ class PgSQLGeonameGISHelper(GeonameGISHelper):
 
 
 GIS_HELPERS = {
-    'django.contrib.gis.db.backends.mysql': MySQLGeonameGISHelper
+    'django.contrib.gis.db.backends.mysql': MySQLGeonameGISHelper,
     'django.db.backends.postgresql_psycopg2': PgSQLGeonameGISHelper,
     'postgresql_psycopg2': PgSQLGeonameGISHelper,
 }
