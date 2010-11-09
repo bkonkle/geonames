@@ -724,7 +724,6 @@ class Command(BaseCommand):
                 password=settings.DATABASES['default']['PASSWORD'],
                 db=settings.DATABASES['default']['NAME'],
                 tmpdir=options['tmpdir'])
-            print "I was a success"
         except AttributeError:
             imp = importer(host=settings.DATABASE_HOST,
                 user=settings.DATABASE_USER,
