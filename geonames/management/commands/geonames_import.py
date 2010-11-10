@@ -102,6 +102,7 @@ class GeonamesImporter(object):
     def import_fcodes(self):
         print 'Importing feature codes'
         with open('featureCodes_en.txt') as fd:
+            fd.readline()
             for line in fd:
                 codes, name, desc = line.split('\t')
                 try:
@@ -120,6 +121,7 @@ class GeonamesImporter(object):
     def import_language_codes(self):
         print 'Importing language codes'
         with open('iso-languagecodes.txt') as fd:
+            fd.readline()
             for line in fd:
                 fields = line.split('\t')
                 if not fields[0]:
@@ -140,7 +142,13 @@ class GeonamesImporter(object):
         if hasattr(self,'import_file'):
             self.import_file('alternate_name','alternateNames.txt')
         with open('alternateNames.txt') as fd:
+            i = 0
+            fd.readline()
             for line in fd:
+                i += 1
+                if i % 50000 == 0:
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
                 id, geoname_id, lang, name, preferred, short = line.split('\t')
                 if preferred in ('', '0'):
                     preferred = False
@@ -162,6 +170,7 @@ class GeonamesImporter(object):
     def import_time_zones(self):
         print 'Importing time zones'
         with open('timeZones.txt') as fd:
+            fd.readline()
             for line in fd:
                 name, gmt, dst = line.split('\t')
                 try:
@@ -189,6 +198,7 @@ class GeonamesImporter(object):
     def import_countries(self):
         print 'Importing countries'
         with open('countryInfo.txt') as fd:
+            fd.readline()
             for line in fd:
                 if line[0] == '#' or line.startswith('ISO') or line.startswith('CS'):
                     continue
@@ -211,6 +221,7 @@ class GeonamesImporter(object):
     def import_first_level_adm(self):
         print 'Importing first level administrative divisions'
         with open('admin1CodesASCII.txt') as fd:
+            fd.readline()
             for line in fd:
                 country_and_code, name, ascii_name, geoname_id = line.split('\t')
                 country_id, code = country_and_code.split('.')
@@ -236,6 +247,7 @@ class GeonamesImporter(object):
     def import_second_level_adm(self):
         print 'Importing second level administrative divisions'
         with open('admin2Codes.txt') as fd:
+            fd.readline()
             for line in fd:
                 codes, name, ascii_name, geoname_id = line.split('\t')
                 country_id, adm1, code = codes.split('.', 2)
@@ -263,6 +275,7 @@ class GeonamesImporter(object):
     def import_third_level_adm(self):
         print 'Importing third level administrative divisions'
         with open('allCountries.txt') as fd:
+            fd.readline()
             for line in fd:
                 fields = line.split('\t')
                 fcode = fields[7]
@@ -307,6 +320,7 @@ class GeonamesImporter(object):
     def import_fourth_level_adm(self):
         print 'Importing fourth level administrative divisions'
         with open('allCountries.txt') as fd:
+            fd.readline()
             for line in fd:
                 fields = line.split('\t')
                 fcode = fields[7]
@@ -359,7 +373,13 @@ class GeonamesImporter(object):
     def import_geonames(self):
         print 'Importing geonames (this is going to take a while)'
         with open('allCountries.txt') as fd:
+            i = 0
+            fd.readline()
             for line in fd:
+                i += 1
+                if i % 100000 == 0:
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
                 fields = line.split('\t')
                 id, name, ascii_name = fields[:3]
                 latitude, longitude, fclass, fcode, country_id, cc2 = fields[4:10]
