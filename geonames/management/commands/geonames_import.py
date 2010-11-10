@@ -31,13 +31,16 @@ CONTINENT_CODES = [
 ]
 
 class GeonamesImporter(object):
-    def __init__(self, host=None, user=None, password=None, db=None, tmpdir='tmp'):
+    
+    def __init__(self, host=None, user=None, password=None, db=None,
+                 tmpdir='tmp', skip_preimport=False):
         self.user = user
         self.password = password
         self.db = db
         self.host = host
         self.conn = None
         self.tmpdir = tmpdir
+        self.skip_preimport = skip_preimport
         self.curdir = os.getcwd()
         self.time_zones = {}
         self.admin1_codes = {}
@@ -112,7 +115,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO feature_code (code, fclass, name, description) VALUES (%s, %s, %s, %s)', (code, fclass, name, desc))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
@@ -131,7 +134,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO iso_language (iso_639_3, iso_639_2, iso_639_1, language_name) VALUES (%s, %s, %s, %s)', fields)
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e)
@@ -161,7 +164,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
@@ -176,7 +179,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO time_zone (name, gmt_offset, dst_offset) VALUES (%s, %s, %s)', (name, gmt, dst))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
@@ -189,7 +192,7 @@ class GeonamesImporter(object):
             try:
                 self.cursor.execute(u'INSERT INTO continent (code, name, geoname_id) VALUES (%s, %s, %s)', continent)
             except Exception, e:
-                if 'Duplicate' in str(e):
+                if 'duplicate' in str(e).lower():
                     #print "I think the data was already entered."
                     return True
                 self.handle_exception(e)
@@ -212,7 +215,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields[:17])
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
@@ -232,7 +235,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     print "Got an error %s" % (e)
@@ -260,7 +263,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO admin2_code (country_id, admin1_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s)', (country_id, admin1, geoname_id, code, name, ascii_name))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
@@ -304,7 +307,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO admin3_code (country_id, admin1_id, admin2_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, geoname_id, admin3, name, ascii_name))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
@@ -355,7 +358,7 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO admin4_code (country_id, admin1_id, admin2_id, admin3_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, admin3_id, geoname_id, admin4, name, ascii_name))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
@@ -428,14 +431,15 @@ class GeonamesImporter(object):
                 try:
                     self.cursor.execute(u'INSERT INTO geoname (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
                 except Exception, e:
-                    if 'Duplicate' in str(e):
+                    if 'duplicate' in str(e).lower():
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
         print '%d geonames imported' % self.table_count('geoname')
 
     def import_all(self):
-        self.pre_import()
+        if not self.skip_preimport:
+            self.pre_import()
         self.begin()
         self.import_fcodes()
         self.commit()
@@ -472,8 +476,6 @@ class GeonamesImporter(object):
         self.post_import()
 
 class PsycoPg2Importer(GeonamesImporter):
-    def table_count(self, table):
-        return 0
 
     def pre_import(self):
         self.end_stmts = []
@@ -562,8 +564,6 @@ class PsycoPg2Importer(GeonamesImporter):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
 
 class MySQLImporter(GeonamesImporter):
-    def table_count(self, table):
-        return 0
 
     def import_file(self, tablename, filename):
         import re
@@ -686,6 +686,13 @@ class Command(BaseCommand):
             default='/tmp/geonames_temp',
             help='The temporary directory for the geonames file.'
         ),
+        optparse.make_option('--skip-preimport',
+            action='store_true',
+            dest='skip_preimport',
+            default=False,
+            help=('Skip the pre-import since this causes problems if you are '
+                  'resuming a failed import.')
+        )
     )
 
     def handle(self, *args, **options):
@@ -701,13 +708,15 @@ class Command(BaseCommand):
                 user=settings.DATABASES['default']['USER'],
                 password=settings.DATABASES['default']['PASSWORD'],
                 db=settings.DATABASES['default']['NAME'],
-                tmpdir=options['tmpdir'])
+                tmpdir=options['tmpdir'],
+                skip_preimport=options['skip_preimport'])
         except AttributeError:
             imp = importer(host=settings.DATABASE_HOST,
                 user=settings.DATABASE_USER,
                 password=settings.DATABASE_PASSWORD,
                 db=settings.DATABASE_NAME,
-                tmpdir=options['tmpdir'])
+                tmpdir=options['tmpdir'],
+                skip_preimport=options['skip_preimport'])
 
         imp.fetch()
         imp.get_db_conn()
