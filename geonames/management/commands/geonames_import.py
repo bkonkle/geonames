@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import optparse
 import os
 import sys
@@ -99,91 +101,78 @@ class GeonamesImporter(object):
 
     def import_fcodes(self):
         print 'Importing feature codes'
-        fd = open('featureCodes_en.txt')
-        line = fd.readline()[:-1]
-        while line:
-            codes, name, desc = line.split('\t')
-            try:
-                fclass, code = codes.split('.')
-            except ValueError:
-                line = fd.readline()[:-1]
-                continue
-            try:
-                self.cursor.execute(u'INSERT INTO feature_code (code, fclass, name, description) VALUES (%s, %s, %s, %s)', (code, fclass, name, desc))
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
-
-            line = fd.readline()[:-1]
-        fd.close()
+        with open('featureCodes_en.txt') as fd:
+            for line in fd:
+                codes, name, desc = line.split('\t')
+                try:
+                    fclass, code = codes.split('.')
+                except ValueError:
+                    continue
+                try:
+                    self.cursor.execute(u'INSERT INTO feature_code (code, fclass, name, description) VALUES (%s, %s, %s, %s)', (code, fclass, name, desc))
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
         print '%d feature codes imported' % self.table_count('feature_code')
 
     def import_language_codes(self):
         print 'Importing language codes'
-        fd = open('iso-languagecodes.txt')
-        fd.readline()
-        line = fd.readline()[:-1]
-        while line:
-            fields = line.split('\t')
-            try:
-                self.cursor.execute(u'INSERT INTO iso_language (iso_639_3, iso_639_2, iso_639_1, language_name) VALUES (%s, %s, %s, %s)', fields)
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e)
-
-            line = fd.readline()[:-1]
-        fd.close()
+        with open('iso-languagecodes.txt') as fd:
+            for line in fd:
+                fields = line.split('\t')
+                if not fields[0]:
+                    # Skip lines with no ISO 639-3 definition, since it is the
+                    # primary key
+                    continue
+                try:
+                    self.cursor.execute(u'INSERT INTO iso_language (iso_639_3, iso_639_2, iso_639_1, language_name) VALUES (%s, %s, %s, %s)', fields)
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e)
         print '%d language codes imported' % self.table_count('iso_language')
 
     def import_alternate_names(self):
         print 'Importing alternate names (this is going to take a while)'
         if hasattr(self,'import_file'):
             self.import_file('alternate_name','alternateNames.txt')
-        fd = open('alternateNames.txt')
-        line = fd.readline()[:-1]
-        while line:
-            id, geoname_id, lang, name, preferred, short = line.split('\t')
-            if preferred in ('', '0'):
-                preferred = False
-            else:
-                preferred = True 
-            if short in ('', '0'):
-                short = False
-            else:
-                short = True
-            try:
-                self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
-            line = fd.readline()[:-1]
-        fd.close()
+        with open('alternateNames.txt') as fd:
+            for line in fd:
+                id, geoname_id, lang, name, preferred, short = line.split('\t')
+                if preferred in ('', '0'):
+                    preferred = False
+                else:
+                    preferred = True 
+                if short in ('', '0'):
+                    short = False
+                else:
+                    short = True
+                try:
+                    self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
         print '%d alternate names imported' % self.table_count('alternate_name')
 
     def import_time_zones(self):
         print 'Importing time zones'
-        fd = open('timeZones.txt')
-        fd.readline()
-        line = fd.readline()[:-1]
-        while line:
-            name, gmt, dst = line.split('\t')
-            try:
-                self.cursor.execute(u'INSERT INTO time_zone (name, gmt_offset, dst_offset) VALUES (%s, %s, %s)', (name, gmt, dst))
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
+        with open('timeZones.txt') as fd:
+            for line in fd:
+                name, gmt, dst = line.split('\t')
+                try:
+                    self.cursor.execute(u'INSERT INTO time_zone (name, gmt_offset, dst_offset) VALUES (%s, %s, %s)', (name, gmt, dst))
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
 
-            self.time_zones[name] = self.last_row_id('time_zone', 'id') 
-            line = fd.readline()[:-1]
-        fd.close()
+                self.time_zones[name] = self.last_row_id('time_zone', 'id')
         print '%d time zones imported' % self.table_count('time_zone')
 
     def import_continent_codes(self):
@@ -199,261 +188,232 @@ class GeonamesImporter(object):
 
     def import_countries(self):
         print 'Importing countries'
-        fd = open('countryInfo.txt')
-        fd.readline()
-        line = fd.readline()[:-1]
-        while line:
-            if line[0] == '#' or line.startswith('ISO') or line.startswith('CS'):
-                line = fd.readline()[:-1]
-                continue
-            fields = line.split('\t')
-            #if len(fields) == 18:
-            #    fields.append('')
-            fields[6] = fields[6].replace(',', '')
-            fields[7] = fields[7].replace(',', '')
-            if fields[6] == '':
-                fields[6] = 0
-            try:
-                self.cursor.execute(u'INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields[:17])
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
-            line = fd.readline()[:-1]
-        fd.close()
+        with open('countryInfo.txt') as fd:
+            for line in fd:
+                if line[0] == '#' or line.startswith('ISO') or line.startswith('CS'):
+                    continue
+                fields = line.split('\t')
+                #if len(fields) == 18:
+                #    fields.append('')
+                fields[6] = fields[6].replace(',', '')
+                fields[7] = fields[7].replace(',', '')
+                if fields[6] == '':
+                    fields[6] = 0
+                try:
+                    self.cursor.execute(u'INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields[:17])
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
         print '%d countries imported' % self.table_count('country')
 
     def import_first_level_adm(self):
         print 'Importing first level administrative divisions'
-        fd = open('admin1CodesASCII.txt')
-        line = fd.readline()[:-1]
-        while line:
-            country_and_code, name, ascii_name, geoname_id = line.split('\t')
-            country_id, code = country_and_code.split('.')
-            try:
-                name = unicode(name,'utf-8')
-            except Exception, inst:
-                raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
-            try:
-                print(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)' % (country_id, geoname_id, code, name, ascii_name))
-                self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
-            except Exception, e:
-                print(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)' % (country_id, geoname_id, code, name, ascii_name))
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                print "Got an error %s" % (e)
-                self.handle_exception(e, line)
+        with open('admin1CodesASCII.txt') as fd:
+            for line in fd:
+                country_and_code, name, ascii_name, geoname_id = line.split('\t')
+                country_id, code = country_and_code.split('.')
+                try:
+                    name = unicode(name,'utf-8')
+                except Exception, inst:
+                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                try:
+                    print(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)' % (country_id, geoname_id, code, name, ascii_name))
+                    self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
+                except Exception, e:
+                    print(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)' % (country_id, geoname_id, code, name, ascii_name))
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    print "Got an error %s" % (e)
+                    self.handle_exception(e, line)
 
-            self.admin1_codes.setdefault(country_id, {})
-            self.admin1_codes[country_id][code] = self.last_row_id('admin1_code', 'id')
-            line = fd.readline()[:-1]
-        fd.close()
+                self.admin1_codes.setdefault(country_id, {})
+                self.admin1_codes[country_id][code] = self.last_row_id('admin1_code', 'id')
         print '%d first level administrative divisions imported' % self.table_count('admin1_code')
 
     def import_second_level_adm(self):
         print 'Importing second level administrative divisions'
-        fd = open('admin2Codes.txt')
-        line = fd.readline()[:-1]
-        while line:
-            codes, name, ascii_name, geoname_id = line.split('\t')
-            country_id, adm1, code = codes.split('.', 2)
-            try:
-                name = unicode(name,'utf-8')
-            except Exception, inst:
-                raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
-            try:
-                admin1 = self.admin1_codes[country_id][adm1]
-            except KeyError:
-                admin1 = None
-            try:
-                self.cursor.execute(u'INSERT INTO admin2_code (country_id, admin1_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s)', (country_id, admin1, geoname_id, code, name, ascii_name))
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
+        with open('admin2Codes.txt') as fd:
+            for line in fd:
+                codes, name, ascii_name, geoname_id = line.split('\t')
+                country_id, adm1, code = codes.split('.', 2)
+                try:
+                    name = unicode(name,'utf-8')
+                except Exception, inst:
+                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                try:
+                    admin1 = self.admin1_codes[country_id][adm1]
+                except KeyError:
+                    admin1 = None
+                try:
+                    self.cursor.execute(u'INSERT INTO admin2_code (country_id, admin1_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s)', (country_id, admin1, geoname_id, code, name, ascii_name))
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
 
-            self.admin2_codes.setdefault(country_id, {})
-            self.admin2_codes[country_id].setdefault(adm1, {})
-            self.admin2_codes[country_id][adm1][code] = self.last_row_id('admin2_code', 'id') 
-            line = fd.readline()[:-1]
-        fd.close()
+                self.admin2_codes.setdefault(country_id, {})
+                self.admin2_codes[country_id].setdefault(adm1, {})
+                self.admin2_codes[country_id][adm1][code] = self.last_row_id('admin2_code', 'id') 
         print '%d second level administrative divisions imported' % self.table_count('admin2_code')
 
     def import_third_level_adm(self):
         print 'Importing third level administrative divisions'
-        fd = open('allCountries.txt')
-        line = fd.readline()[:-1]
-        while line:
-            fields = line.split('\t')
-            fcode = fields[7]
-            if fcode != 'ADM3':
-                line = fd.readline()[:-1]
-                continue
-            geoname_id = fields[0]
-            name = fields[1]
-            try:
-                name = unicode(name,'utf-8')
-            except Exception, inst:
-                raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
-            ascii_name = fields[2]
-            country_id = fields[8]
-            admin1 = fields[10]
-            admin2 = fields[11]
-            admin3 = fields[12]
-            admin1_id, admin2_id = [None] * 2
-            if admin1:
+        with open('allCountries.txt') as fd:
+            for line in fd:
+                fields = line.split('\t')
+                fcode = fields[7]
+                if fcode != 'ADM3':
+                    continue
+                geoname_id = fields[0]
+                name = fields[1]
                 try:
-                    admin1_id = self.admin1_codes[country_id][admin1]
-                except KeyError:
-                    pass
-                if admin2:
+                    name = unicode(name,'utf-8')
+                except Exception, inst:
+                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                ascii_name = fields[2]
+                country_id = fields[8]
+                admin1 = fields[10]
+                admin2 = fields[11]
+                admin3 = fields[12]
+                admin1_id, admin2_id = [None] * 2
+                if admin1:
                     try:
-                        admin2_id = self.admin2_codes[country_id][admin1][admin2]
+                        admin1_id = self.admin1_codes[country_id][admin1]
                     except KeyError:
                         pass
-            try:
-                self.cursor.execute(u'INSERT INTO admin3_code (country_id, admin1_id, admin2_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, geoname_id, admin3, name, ascii_name))
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
+                    if admin2:
+                        try:
+                            admin2_id = self.admin2_codes[country_id][admin1][admin2]
+                        except KeyError:
+                            pass
+                try:
+                    self.cursor.execute(u'INSERT INTO admin3_code (country_id, admin1_id, admin2_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, geoname_id, admin3, name, ascii_name))
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
 
-            self.admin3_codes.setdefault(country_id, {})
-            self.admin3_codes[country_id].setdefault(admin1, {})
-            self.admin3_codes[country_id][admin1].setdefault(admin2, {})
-            self.admin3_codes[country_id][admin1][admin2][admin3] = self.last_row_id('admin3_code', 'id')
-
-            line = fd.readline()[:-1]
-
-        fd.close()
+                self.admin3_codes.setdefault(country_id, {})
+                self.admin3_codes[country_id].setdefault(admin1, {})
+                self.admin3_codes[country_id][admin1].setdefault(admin2, {})
+                self.admin3_codes[country_id][admin1][admin2][admin3] = self.last_row_id('admin3_code', 'id')
         print '%d third level administrative divisions imported' % self.table_count('admin3_code')
 
     def import_fourth_level_adm(self):
         print 'Importing fourth level administrative divisions'
-        fd = open('allCountries.txt')
-        line = fd.readline()[:-1]
-        while line:
-            fields = line.split('\t')
-            fcode = fields[7]
-            if fcode != 'ADM4':
-                line = fd.readline()[:-1]
-                continue
-            geoname_id = fields[0]
-            name = fields[1]
-            try:
-                name = unicode(name,'utf-8')
-            except Exception, inst:
-                raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
-            ascii_name = fields[2]
-            country_id = fields[8]
-            admin1 = fields[10]
-            admin2 = fields[11]
-            admin3 = fields[12]
-            admin4 = fields[13]
-            admin1_id, admin2_id, admin3_id = [None] * 3
-            if admin1:
+        with open('allCountries.txt') as fd:
+            for line in fd:
+                fields = line.split('\t')
+                fcode = fields[7]
+                if fcode != 'ADM4':
+                    continue
+                geoname_id = fields[0]
+                name = fields[1]
                 try:
-                    admin1_id = self.admin1_codes[country_id][admin1]
-                except KeyError:
-                    pass
-                if admin2:
+                    name = unicode(name,'utf-8')
+                except Exception, inst:
+                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                ascii_name = fields[2]
+                country_id = fields[8]
+                admin1 = fields[10]
+                admin2 = fields[11]
+                admin3 = fields[12]
+                admin4 = fields[13]
+                admin1_id, admin2_id, admin3_id = [None] * 3
+                if admin1:
                     try:
-                        admin2_id = self.admin2_codes[country_id][admin1][admin2]
+                        admin1_id = self.admin1_codes[country_id][admin1]
                     except KeyError:
                         pass
-                    if admin3:
+                    if admin2:
                         try:
-                            admin3_id = self.admin3_codes[country_id][admin1][admin2][admin3]
+                            admin2_id = self.admin2_codes[country_id][admin1][admin2]
                         except KeyError:
                             pass
-            try:
-                self.cursor.execute(u'INSERT INTO admin4_code (country_id, admin1_id, admin2_id, admin3_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, admin3_id, geoname_id, admin4, name, ascii_name))
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
+                        if admin3:
+                            try:
+                                admin3_id = self.admin3_codes[country_id][admin1][admin2][admin3]
+                            except KeyError:
+                                pass
+                try:
+                    self.cursor.execute(u'INSERT INTO admin4_code (country_id, admin1_id, admin2_id, admin3_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, admin3_id, geoname_id, admin4, name, ascii_name))
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
 
-            self.admin4_codes.setdefault(country_id, {})
-            self.admin4_codes[country_id].setdefault(admin1, {})
-            self.admin4_codes[country_id][admin1].setdefault(admin2, {})
-            self.admin4_codes[country_id][admin1][admin2].setdefault(admin3, {})
-            self.admin4_codes[country_id][admin1][admin2][admin3][admin4] = self.last_row_id('admin4_code', 'id')
-
-            line = fd.readline()[:-1]
-
-        fd.close()
+                self.admin4_codes.setdefault(country_id, {})
+                self.admin4_codes[country_id].setdefault(admin1, {})
+                self.admin4_codes[country_id][admin1].setdefault(admin2, {})
+                self.admin4_codes[country_id][admin1][admin2].setdefault(admin3, {})
+                self.admin4_codes[country_id][admin1][admin2][admin3][admin4] = self.last_row_id('admin4_code', 'id')
         print '%d fourth level administrative divisions imported' % self.table_count('admin4_code')
 
 
     def import_geonames(self):
         print 'Importing geonames (this is going to take a while)'
-        fd = open('allCountries.txt')
-        line = fd.readline()[:-1]
-        while line:
-            fields = line.split('\t')
-            id, name, ascii_name = fields[:3]
-            latitude, longitude, fclass, fcode, country_id, cc2 = fields[4:10]
-            population, elevation, gtopo30 = fields[14:17]
-            if fclass != 'P': #only import populated places!
-                line = fd.readline()[:-1]
-                continue
-            moddate = fields[18]
-            if elevation == '':
-                elevation = 0
-            try:
-                timezone_id = self.time_zones[fields[17]]
-            except KeyError:
-                timezone_id = None
-            #XXX
-            try:
-                name = unicode(name,'utf-8')
-            except Exception, inst:
-                raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
-            admin1 = fields[10]
-            admin2 = fields[11]
-            admin3 = fields[12]
-            admin4 = fields[13]
-            admin1_id, admin2_id, admin3_id, admin4_id = [None] * 4
-
-            if admin1:
+        with open('allCountries.txt') as fd:
+            for line in fd:
+                fields = line.split('\t')
+                id, name, ascii_name = fields[:3]
+                latitude, longitude, fclass, fcode, country_id, cc2 = fields[4:10]
+                population, elevation, gtopo30 = fields[14:17]
+                if fclass != 'P': #only import populated places!
+                    continue
+                moddate = fields[18]
+                if elevation == '':
+                    elevation = 0
                 try:
-                    admin1_id = self.admin1_codes[country_id][admin1]
+                    timezone_id = self.time_zones[fields[17]]
                 except KeyError:
-                    pass
-
-            if admin2:
+                    timezone_id = None
+                #XXX
                 try:
-                    admin2_id = self.admin2_codes[country_id][admin1][admin2]
-                except KeyError:
-                    pass
+                    name = unicode(name,'utf-8')
+                except Exception, inst:
+                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                admin1 = fields[10]
+                admin2 = fields[11]
+                admin3 = fields[12]
+                admin4 = fields[13]
+                admin1_id, admin2_id, admin3_id, admin4_id = [None] * 4
 
-            if admin3:
+                if admin1:
+                    try:
+                        admin1_id = self.admin1_codes[country_id][admin1]
+                    except KeyError:
+                        pass
+
+                if admin2:
+                    try:
+                        admin2_id = self.admin2_codes[country_id][admin1][admin2]
+                    except KeyError:
+                        pass
+
+                if admin3:
+                    try:
+                        admin3_id = self.admin3_codes[country_id][admin1][admin2][admin3]
+                    except KeyError:
+                        pass
+
+                if admin4:
+                    try:
+                        admin4_id = self.admin4_codes[country_id][admin1][admin2][admin3][admin4]
+                    except KeyError:
+                        pass
                 try:
-                    admin3_id = self.admin3_codes[country_id][admin1][admin2][admin3]
-                except KeyError:
-                    pass
-
-            if admin4:
-                try:
-                    admin4_id = self.admin4_codes[country_id][admin1][admin2][admin3][admin4]
-                except KeyError:
-                    pass
-            try:
-                self.cursor.execute(u'INSERT INTO geoname (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
-            except Exception, e:
-                if 'Duplicate' in str(e):
-                    #print "I think the data was already entered."
-                    return True
-                self.handle_exception(e, line)
-
-            line = fd.readline()[:-1]
-        fd.close()
-
+                    self.cursor.execute(u'INSERT INTO geoname (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
+                except Exception, e:
+                    if 'Duplicate' in str(e):
+                        #print "I think the data was already entered."
+                        return True
+                    self.handle_exception(e, line)
         print '%d geonames imported' % self.table_count('geoname')
 
     def import_all(self):
@@ -592,9 +552,10 @@ class MySQLImporter(GeonamesImporter):
         if re.search(r'[^\w\.]',tablename):
             raise Exception("Illegal tablename: %s" % tablename)
         try:
-            open(filename)
+            fd = open(filename)
         except:
             raise Exception("Bad file.")
+        fd.close()
         fullpath = "%s/%s" % (os.getcwd(),filename)
         print "LOAD DATA INFILE '%(filename)s' IGNORE INTO TABLE `%(tablename)s` CHARACTER SET utf8" % {'tablename':tablename, 'filename':fullpath}
         self.cursor.execute("LOAD DATA INFILE '%(filename)s' IGNORE INTO TABLE `%(tablename)s`" % {'tablename':tablename, 'filename':fullpath})
@@ -646,7 +607,7 @@ class MySQLImporter(GeonamesImporter):
         self.cursor.execute('COMMIT')
 
     def post_import(self):
-        print 'Enabling constraings and generating indexes (be patient, this is the last step)'
+        print 'Enabling constraints and generating indexes (be patient, this is the last step)'
         self.insert_dummy_records()
         for stmt in self.end_stmts:
             self.cursor.execute(stmt)
