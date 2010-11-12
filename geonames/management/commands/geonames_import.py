@@ -95,7 +95,7 @@ class GeonamesImporter(object):
         os.rmdir(self.tmpdir)
 
     def handle_exception(self, e, line=None):
-        print e
+        sys.stderr.write("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" % (line, e))
         sys.exit(1)
 
     def table_count(self, table):
@@ -105,7 +105,6 @@ class GeonamesImporter(object):
     def import_fcodes(self):
         print 'Importing feature codes'
         with open('featureCodes_en.txt') as fd:
-            fd.readline()
             for line in fd:
                 codes, name, desc = line.split('\t')
                 try:
@@ -146,7 +145,6 @@ class GeonamesImporter(object):
             self.import_file('alternate_name','alternateNames.txt')
         with open('alternateNames.txt') as fd:
             i = 0
-            fd.readline()
             for line in fd:
                 i += 1
                 if i % 50000 == 0:
@@ -168,7 +166,7 @@ class GeonamesImporter(object):
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
-        print '%d alternate names imported' % self.table_count('alternate_name')
+        print '\n%d alternate names imported' % self.table_count('alternate_name')
 
     def import_time_zones(self):
         print 'Importing time zones'
@@ -201,7 +199,6 @@ class GeonamesImporter(object):
     def import_countries(self):
         print 'Importing countries'
         with open('countryInfo.txt') as fd:
-            fd.readline()
             for line in fd:
                 if line[0] == '#' or line.startswith('ISO') or line.startswith('CS'):
                     continue
@@ -224,21 +221,22 @@ class GeonamesImporter(object):
     def import_first_level_adm(self):
         print 'Importing first level administrative divisions'
         with open('admin1CodesASCII.txt') as fd:
-            fd.readline()
             for line in fd:
                 country_and_code, name, ascii_name, geoname_id = line.split('\t')
                 country_id, code = country_and_code.split('.')
+                if len(code) > 5:
+                    # Skip this division, the code is longer than it should be
+                    continue
                 try:
                     name = unicode(name,'utf-8')
-                except Exception, inst:
-                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                except Exception, e:
+                    self.handle_exception(e, line)
                 try:
                     self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        #print "I think the data was already entered."
+                        print "Skipping - data already populated."
                         return True
-                    print "Got an error %s" % (e)
                     self.handle_exception(e, line)
 
                 self.admin1_codes.setdefault(country_id, {})
@@ -248,7 +246,6 @@ class GeonamesImporter(object):
     def import_second_level_adm(self):
         print 'Importing second level administrative divisions'
         with open('admin2Codes.txt') as fd:
-            fd.readline()
             for line in fd:
                 codes, name, ascii_name, geoname_id = line.split('\t')
                 country_id, adm1, code = codes.split('.', 2)
@@ -276,7 +273,6 @@ class GeonamesImporter(object):
     def import_third_level_adm(self):
         print 'Importing third level administrative divisions'
         with open('allCountries.txt') as fd:
-            fd.readline()
             for line in fd:
                 fields = line.split('\t')
                 fcode = fields[7]
@@ -321,7 +317,6 @@ class GeonamesImporter(object):
     def import_fourth_level_adm(self):
         print 'Importing fourth level administrative divisions'
         with open('allCountries.txt') as fd:
-            fd.readline()
             for line in fd:
                 fields = line.split('\t')
                 fcode = fields[7]
@@ -375,7 +370,6 @@ class GeonamesImporter(object):
         print 'Importing geonames (this is going to take a while)'
         with open('allCountries.txt') as fd:
             i = 0
-            fd.readline()
             for line in fd:
                 i += 1
                 if i % 100000 == 0:
@@ -435,7 +429,7 @@ class GeonamesImporter(object):
                         #print "I think the data was already entered."
                         return True
                     self.handle_exception(e, line)
-        print '%d geonames imported' % self.table_count('geoname')
+        print '\n%d geonames imported' % self.table_count('geoname')
 
     def import_all(self):
         if not self.skip_preimport:
