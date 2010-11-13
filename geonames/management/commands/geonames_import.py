@@ -7,6 +7,7 @@ from warnings import filterwarnings
 from getpass import getpass
 from datetime import date
 from django.conf import settings
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import connections, DEFAULT_DB_ALIAS
 
@@ -33,14 +34,13 @@ CONTINENT_CODES = [
 class GeonamesImporter(object):
     
     def __init__(self, host=None, user=None, password=None, db=None,
-                 tmpdir='tmp', skip_preimport=False):
+                 tmpdir='tmp'):
         self.user = user
         self.password = password
         self.db = db
         self.host = host
         self.conn = None
         self.tmpdir = tmpdir
-        self.skip_preimport = skip_preimport
         self.curdir = os.getcwd()
         self.time_zones = {}
         self.admin1_codes = {}
@@ -438,8 +438,7 @@ class GeonamesImporter(object):
         print '\n%d geonames imported' % self.table_count('geoname')
 
     def import_all(self):
-        if not self.skip_preimport:
-            self.pre_import()
+        self.pre_import()
         self.begin()
         self.import_fcodes()
         self.commit()
@@ -476,9 +475,12 @@ class GeonamesImporter(object):
         self.post_import()
 
 class PsycoPg2Importer(GeonamesImporter):
+    
+    def __init__(self, *args, **kwargs):
+        super(PsycoPg2Importer, self).__init__(*args, **kwargs)
+        self.end_stmts = []
 
     def pre_import(self):
-        self.end_stmts = []
         import re
         from django.core.management.color import no_style
         from django.core.management.sql import sql_all
@@ -562,6 +564,12 @@ class PsycoPg2Importer(GeonamesImporter):
     
     def set_import_date(self):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
+    
+    def handle_exception(self, e, line=None):
+        for stmt in self.end_stmts:
+            self.cursor.execute(stmt)
+            self.commit()
+        super(PsycoPg2Importer, self).handle_exception(e, line)
 
 class MySQLImporter(GeonamesImporter):
 
@@ -686,13 +694,12 @@ class Command(BaseCommand):
             default='/tmp/geonames_temp',
             help='The temporary directory for the geonames file.'
         ),
-        optparse.make_option('--skip-preimport',
+        optparse.make_option('--flush',
             action='store_true',
-            dest='skip_preimport',
+            dest='flush',
             default=False,
-            help=('Skip the pre-import since this causes problems if you are '
-                  'resuming a failed import.')
-        )
+            help='Flush the database, removing all data, before importing.',
+        ),
     )
 
     def handle(self, *args, **options):
@@ -702,21 +709,22 @@ class Command(BaseCommand):
             print 'Sorry, database engine "%s" is not supported' % \
                     settings.DATABASE_ENGINE
             sys.exit(1)
-
+        
+        if options['flush']:
+            call_command('flush')
+        
         try:
             imp = importer(host=settings.DATABASES['default'].get('HOST',None),
                 user=settings.DATABASES['default']['USER'],
                 password=settings.DATABASES['default']['PASSWORD'],
                 db=settings.DATABASES['default']['NAME'],
-                tmpdir=options['tmpdir'],
-                skip_preimport=options['skip_preimport'])
+                tmpdir=options['tmpdir'])
         except AttributeError:
             imp = importer(host=settings.DATABASE_HOST,
                 user=settings.DATABASE_USER,
                 password=settings.DATABASE_PASSWORD,
                 db=settings.DATABASE_NAME,
-                tmpdir=options['tmpdir'],
-                skip_preimport=options['skip_preimport'])
+                tmpdir=options['tmpdir'])
 
         imp.fetch()
         imp.get_db_conn()
