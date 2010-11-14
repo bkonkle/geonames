@@ -95,7 +95,8 @@ class GeonamesImporter(object):
         os.rmdir(self.tmpdir)
 
     def handle_exception(self, e, line=None):
-        sys.stderr.write("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" % (line, e))
+        if line:
+            sys.stderr.write("Encountered an error trying to import this line:\n%s\n\n" % line)
         raise e
 
     def table_count(self, table):
@@ -251,8 +252,8 @@ class GeonamesImporter(object):
                 country_id, adm1, code = codes.split('.', 2)
                 try:
                     name = unicode(name,'utf-8')
-                except Exception, inst:
-                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                except Exception, e:
+                    self.handle_exception(e, line)
                 try:
                     admin1 = self.admin1_codes[country_id][adm1]
                 except KeyError:
@@ -282,8 +283,8 @@ class GeonamesImporter(object):
                 name = fields[1]
                 try:
                     name = unicode(name,'utf-8')
-                except Exception, inst:
-                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                except Exception, e:
+                    self.handle_exception(e, line)
                 ascii_name = fields[2]
                 country_id = fields[8]
                 admin1 = fields[10]
@@ -394,8 +395,8 @@ class GeonamesImporter(object):
                     timezone_id = None
                 try:
                     name = unicode(name,'utf-8')
-                except Exception, inst:
-                    raise Exception("Encountered an error trying to encode the value for this line:\n%s\n\nThe error was: %s" (line, inst))
+                except Exception, e:
+                    self.handle_exception(e, line)
                 admin1 = fields[10]
                 admin2 = fields[11]
                 admin3 = fields[12]
@@ -526,6 +527,9 @@ class PsycoPg2Importer(GeonamesImporter):
                         })
         
         self.cursor.execute('COMMIT')
+        
+        self.post_import() #### DEBUG
+        sys.exit(0) #### DEBUG
 
     def post_import(self):
         print 'Enabling constraints and generating indexes (be patient, this is the last step)'
