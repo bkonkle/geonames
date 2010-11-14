@@ -750,7 +750,7 @@ class Command(BaseCommand):
         if options['flush']:
             call_command('flush')
         
-        if self.verbosity > 1:
+        if options['verbosity'] > 1:
             verbose = True
         else:
             verbose = False

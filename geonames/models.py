@@ -1,12 +1,14 @@
 # This file is part of Django-Geonames
 # Copyright (c) 2008, Alberto Garcia Hierro
 # See LICENSE file for details
-
+import re
 from math import sin, cos, acos, radians
 
 from django.core.cache import cache
 from django.db import connection
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
 from django.utils.translation import ugettext, get_language
 from django.conf import settings
 
@@ -170,6 +172,15 @@ try:
 except (KeyError,AttributeError):
     print 'Sorry, your database backend is not supported by the Geonames application'
 
+
+class GeonameManager(models.GeoManager):
+    
+    def near_point(self, lat, lng, kms=20, order=True):
+        qs = self.get_query_set()
+        point = Point(float(lat), float(lng))
+        return qs.filter(point__distance_lte=(point, D(km=kms)))
+
+
 class Geoname(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, db_index=True)
@@ -191,7 +202,7 @@ class Geoname(models.Model):
     timezone = models.ForeignKey('Timezone', null=True)
     moddate = models.DateField()
 
-    objects = models.GeoManager()
+    objects = GeonameManager()
 
     class Meta:
         db_table = 'geoname'
@@ -365,7 +376,7 @@ class Geoname(models.Model):
         return Geoname.distance_points(self.latitude, self.longitude, other.latitude, other.longitude)
     
     def near_me(self, kms=20, order=True):
-        return Geoname.near_point(self.latitude, self.longitude, kms=kms, order=order).exclude(pk=self.pk)
+        return Geoname.object.near_point(self.latitude, self.longitude, kms=kms, order=order).exclude(pk=self.pk)
 
     @staticmethod
     def select_fields():
@@ -379,9 +390,6 @@ class Geoname(models.Model):
             lat1, lon1, lat2, lon2 = map(lambda x: radians(float(x)), (lat1, lon1, lat2, lon2))
         return 6378.7 * acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1))
 
-    @staticmethod
-    def near_point(latitude, longitude, kms=20, order=True):
-        return GISHelper.near_point(latitude, longitude, kms, order)
 
 class GeonameAlternateName(models.Model):
     id = models.IntegerField(primary_key=True)
