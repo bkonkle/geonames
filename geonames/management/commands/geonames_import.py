@@ -385,8 +385,6 @@ class GeonamesImporter(object):
                     # Same for country
                     country_id = None
                 population, elevation, gtopo30 = fields[14:17]
-                if fclass != 'P': #only import populated places!
-                    continue
                 moddate = fields[18]
                 if elevation == '':
                     elevation = 0
@@ -394,7 +392,6 @@ class GeonamesImporter(object):
                     timezone_id = self.time_zones[fields[17]]
                 except KeyError:
                     timezone_id = None
-                #XXX
                 try:
                     name = unicode(name,'utf-8')
                 except Exception, inst:
@@ -508,13 +505,18 @@ class PsycoPg2Importer(GeonamesImporter):
             elif table_re.search(stmt): 
                 table = table_re.search(stmt).group(1)
                 for m in  references_re.findall(stmt):
-                    self.cursor.execute(references_action % \
-                        { 
-                            'table': table,
-                            'field': m[0],
-                            'reftable': m[1],
-                            'reffield': m[2],
-                        })
+                    try:
+                        self.cursor.execute(references_action % \
+                            { 
+                                'table': table,
+                                'field': m[0],
+                                'reftable': m[1],
+                                'reffield': m[2],
+                            })
+                    except psycopg2.ProgrammingError, e:
+                        if 'constraint' in e and 'does not exist' in e:
+                            # The constraint has already been removed
+                            continue
                     self.end_stmts.append(references_stmt % \
                         {
                             'table': table,
@@ -522,7 +524,7 @@ class PsycoPg2Importer(GeonamesImporter):
                             'reftable': m[1],
                             'reffield': m[2],
                         })
-                        
+        
         self.cursor.execute('COMMIT')
 
     def post_import(self):
@@ -564,12 +566,6 @@ class PsycoPg2Importer(GeonamesImporter):
     
     def set_import_date(self):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
-    
-    def handle_exception(self, e, line=None):
-        for stmt in self.end_stmts:
-            self.cursor.execute(stmt)
-            self.commit()
-        super(PsycoPg2Importer, self).handle_exception(e, line)
 
 class MySQLImporter(GeonamesImporter):
 
