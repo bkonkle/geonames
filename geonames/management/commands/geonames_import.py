@@ -527,9 +527,6 @@ class PsycoPg2Importer(GeonamesImporter):
                         })
         
         self.cursor.execute('COMMIT')
-        
-        self.post_import() #### DEBUG
-        sys.exit(0) #### DEBUG
 
     def post_import(self):
         print 'Enabling constraints and generating indexes (be patient, this is the last step)'

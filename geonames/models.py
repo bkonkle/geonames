@@ -185,7 +185,7 @@ class Geoname(models.Model):
     admin2 = models.ForeignKey('Admin2Code', null=True, related_name='geoname_set', db_index=True)
     admin3 = models.ForeignKey('Admin3Code', null=True, related_name='geoname_set', db_index=True)
     admin4 = models.ForeignKey('Admin4Code', null=True, related_name='geoname_set', db_index=True)
-    population = models.IntegerField()
+    population = models.BigIntegerField()
     elevation = models.IntegerField()
     gtopo30 = models.IntegerField()
     timezone = models.ForeignKey('Timezone', null=True)
