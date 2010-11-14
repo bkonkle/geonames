@@ -34,7 +34,7 @@ CONTINENT_CODES = [
 class GeonamesImporter(object):
     
     def __init__(self, host=None, user=None, password=None, db=None,
-                 tmpdir='tmp'):
+                 tmpdir='tmp', verbose=False):
         self.user = user
         self.password = password
         self.db = db
@@ -47,6 +47,7 @@ class GeonamesImporter(object):
         self.admin2_codes = {}
         self.admin3_codes = {}
         self.admin4_codes = {}
+        self.verbose = verbose
     
     def pre_import(self):
         pass
@@ -75,17 +76,18 @@ class GeonamesImporter(object):
             os.chdir(self.tmpdir)
         except OSError:
             os.chdir(self.tmpdir)
-            print 'Temporary directory %s exists, using already downloaded data'%self.tmpdir
+            if self.verbose:
+                print 'Temporary directory %s exists, using already downloaded data'%self.tmpdir
             return
 
         for f in FILES:
             if os.system('wget %s' % f) != 0:
-                print 'Error fetching %s' % os.path.basename(f)
+                sys.stderr.write('Error fetching %s' % os.path.basename(f))
                 sys.exit(1)
 
         for f in ('allCountries.zip', 'alternateNames.zip'):
             if os.system('unzip %s' % f) != 0:
-                print 'Error unzipping %s' % f
+                sys.stderr.write('Error unzipping %s' % f)
                 sys.exit(1)
 
     def cleanup(self):
@@ -104,7 +106,8 @@ class GeonamesImporter(object):
         return self.cursor.fetchone()[0]
 
     def import_fcodes(self):
-        print 'Importing feature codes'
+        if self.verbose:
+            print 'Importing feature codes'
         with open('featureCodes_en.txt') as fd:
             for line in fd:
                 codes, name, desc = line.split('\t')
@@ -116,13 +119,16 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO feature_code (code, fclass, name, description) VALUES (%s, %s, %s, %s)', (code, fclass, name, desc))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
-        print '%d feature codes imported' % self.table_count('feature_code')
+        if self.verbose:
+            print '%d feature codes imported' % self.table_count('feature_code')
 
     def import_language_codes(self):
-        print 'Importing language codes'
+        if self.verbose:
+            print 'Importing language codes'
         with open('iso-languagecodes.txt') as fd:
             fd.readline()
             for line in fd:
@@ -135,13 +141,16 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO iso_language (iso_639_3, iso_639_2, iso_639_1, language_name) VALUES (%s, %s, %s, %s)', fields)
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e)
-        print '%d language codes imported' % self.table_count('iso_language')
+        if self.verbose:
+            print '%d language codes imported' % self.table_count('iso_language')
 
     def import_alternate_names(self):
-        print 'Importing alternate names (this is going to take a while)'
+        if self.verbose:
+            print 'Importing alternate names (this is going to take a while)'
         if hasattr(self,'import_file'):
             self.import_file('alternate_name','alternateNames.txt')
         with open('alternateNames.txt') as fd:
@@ -164,13 +173,16 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
-        print '\n%d alternate names imported' % self.table_count('alternate_name')
+        if self.verbose:
+            print '\n%d alternate names imported' % self.table_count('alternate_name')
 
     def import_time_zones(self):
-        print 'Importing time zones'
+        if self.verbose:
+            print 'Importing time zones'
         with open('timeZones.txt') as fd:
             fd.readline()
             for line in fd:
@@ -179,12 +191,14 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO time_zone (name, gmt_offset, dst_offset) VALUES (%s, %s, %s)', (name, gmt, dst))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
 
                 self.time_zones[name] = self.last_row_id('time_zone', 'id')
-        print '%d time zones imported' % self.table_count('time_zone')
+        if self.verbose:
+            print '%d time zones imported' % self.table_count('time_zone')
 
     def import_continent_codes(self):
         for continent in CONTINENT_CODES:
@@ -192,13 +206,16 @@ class GeonamesImporter(object):
                 self.cursor.execute(u'INSERT INTO continent (code, name, geoname_id) VALUES (%s, %s, %s)', continent)
             except Exception, e:
                 if 'duplicate' in str(e).lower():
-                    print "Skipping - data already populated"
+                    if self.verbose:
+                        print "Skipping - data already populated"
                     return True
                 self.handle_exception(e)
-        print '%d continent codes imported' % self.table_count('continent')
+        if self.verbose:
+            print '%d continent codes imported' % self.table_count('continent')
 
     def import_countries(self):
-        print 'Importing countries'
+        if self.verbose:
+            print 'Importing countries'
         with open('countryInfo.txt') as fd:
             for line in fd:
                 if line[0] == '#' or line.startswith('ISO') or line.startswith('CS'):
@@ -214,13 +231,16 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields[:17])
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
-        print '%d countries imported' % self.table_count('country')
+        if self.verbose:
+            print '%d countries imported' % self.table_count('country')
 
     def import_first_level_adm(self):
-        print 'Importing first level administrative divisions'
+        if self.verbose:
+            print 'Importing first level administrative divisions'
         with open('admin1CodesASCII.txt') as fd:
             for line in fd:
                 country_and_code, name, ascii_name, geoname_id = line.split('\t')
@@ -236,16 +256,19 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
 
                 self.admin1_codes.setdefault(country_id, {})
                 self.admin1_codes[country_id][code] = self.last_row_id('admin1_code', 'id')
-        print '%d first level administrative divisions imported' % self.table_count('admin1_code')
+        if self.verbose:
+            print '%d first level administrative divisions imported' % self.table_count('admin1_code')
 
     def import_second_level_adm(self):
-        print 'Importing second level administrative divisions'
+        if self.verbose:
+            print 'Importing second level administrative divisions'
         with open('admin2Codes.txt') as fd:
             for line in fd:
                 codes, name, ascii_name, geoname_id = line.split('\t')
@@ -262,17 +285,20 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO admin2_code (country_id, admin1_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s)', (country_id, admin1, geoname_id, code, name, ascii_name))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
 
                 self.admin2_codes.setdefault(country_id, {})
                 self.admin2_codes[country_id].setdefault(adm1, {})
                 self.admin2_codes[country_id][adm1][code] = self.last_row_id('admin2_code', 'id') 
-        print '%d second level administrative divisions imported' % self.table_count('admin2_code')
+        if self.verbose:
+            print '%d second level administrative divisions imported' % self.table_count('admin2_code')
 
     def import_third_level_adm(self):
-        print 'Importing third level administrative divisions'
+        if self.verbose:
+            print 'Importing third level administrative divisions'
         with open('allCountries.txt') as fd:
             for line in fd:
                 fields = line.split('\t')
@@ -305,7 +331,8 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO admin3_code (country_id, admin1_id, admin2_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, geoname_id, admin3, name, ascii_name))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
 
@@ -313,10 +340,12 @@ class GeonamesImporter(object):
                 self.admin3_codes[country_id].setdefault(admin1, {})
                 self.admin3_codes[country_id][admin1].setdefault(admin2, {})
                 self.admin3_codes[country_id][admin1][admin2][admin3] = self.last_row_id('admin3_code', 'id')
-        print '%d third level administrative divisions imported' % self.table_count('admin3_code')
+        if self.verbose:
+            print '%d third level administrative divisions imported' % self.table_count('admin3_code')
 
     def import_fourth_level_adm(self):
-        print 'Importing fourth level administrative divisions'
+        if self.verbose:
+            print 'Importing fourth level administrative divisions'
         with open('allCountries.txt') as fd:
             for line in fd:
                 fields = line.split('\t')
@@ -355,7 +384,8 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO admin4_code (country_id, admin1_id, admin2_id, admin3_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', (country_id, admin1_id, admin2_id, admin3_id, geoname_id, admin4, name, ascii_name))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
 
@@ -364,11 +394,13 @@ class GeonamesImporter(object):
                 self.admin4_codes[country_id][admin1].setdefault(admin2, {})
                 self.admin4_codes[country_id][admin1][admin2].setdefault(admin3, {})
                 self.admin4_codes[country_id][admin1][admin2][admin3][admin4] = self.last_row_id('admin4_code', 'id')
-        print '%d fourth level administrative divisions imported' % self.table_count('admin4_code')
+        if self.verbose:
+            print '%d fourth level administrative divisions imported' % self.table_count('admin4_code')
 
 
     def import_geonames(self):
-        print 'Importing geonames (this is going to take a while)'
+        if self.verbose:
+            print 'Importing geonames (this is going to take a while)'
         with open('allCountries.txt') as fd:
             i = 0
             for line in fd:
@@ -430,10 +462,12 @@ class GeonamesImporter(object):
                     self.cursor.execute(u'INSERT INTO geoname (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (id, name, ascii_name, latitude, longitude, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
-                        print "Skipping - data already populated"
+                        if self.verbose:
+                            print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
-        print '\n%d geonames imported' % self.table_count('geoname')
+        if self.verbose:
+            print '\n%d geonames imported' % self.table_count('geoname')
 
     def import_all(self):
         self.pre_import()
@@ -529,7 +563,8 @@ class PsycoPg2Importer(GeonamesImporter):
         self.cursor.execute('COMMIT')
 
     def post_import(self):
-        print 'Enabling constraints and generating indexes (be patient, this is the last step)'
+        if self.verbose:
+            print 'Enabling constraints and generating indexes (be patient, this is the last step)'
         self.insert_dummy_records()
         for stmt in self.end_stmts:
             self.cursor.execute(stmt)
@@ -569,6 +604,10 @@ class PsycoPg2Importer(GeonamesImporter):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
 
 class MySQLImporter(GeonamesImporter):
+    
+    def __init__(self, *args, **kwargs):
+        super(MySQLImporter, self).__init__(*args, **kwargs)
+        self.end_stmts = []
 
     def import_file(self, tablename, filename):
         import re
@@ -580,11 +619,11 @@ class MySQLImporter(GeonamesImporter):
             raise Exception("Bad file.")
         fd.close()
         fullpath = "%s/%s" % (os.getcwd(),filename)
-        print "LOAD DATA INFILE '%(filename)s' IGNORE INTO TABLE `%(tablename)s` CHARACTER SET utf8" % {'tablename':tablename, 'filename':fullpath}
+        if self.verbose:
+            print "LOAD DATA INFILE '%(filename)s' IGNORE INTO TABLE `%(tablename)s` CHARACTER SET utf8" % {'tablename':tablename, 'filename':fullpath}
         self.cursor.execute("LOAD DATA INFILE '%(filename)s' IGNORE INTO TABLE `%(tablename)s`" % {'tablename':tablename, 'filename':fullpath})
 
     def pre_import(self):
-        self.end_stmts = []
         import re
         from django.core.management.color import no_style
         from django.core.management.sql import sql_all
@@ -630,7 +669,8 @@ class MySQLImporter(GeonamesImporter):
         self.cursor.execute('COMMIT')
 
     def post_import(self):
-        print 'Enabling constraints and generating indexes (be patient, this is the last step)'
+        if self.verbose:
+            print 'Enabling constraints and generating indexes (be patient, this is the last step)'
         self.insert_dummy_records()
         for stmt in self.end_stmts:
             self.cursor.execute(stmt)
@@ -703,25 +743,36 @@ class Command(BaseCommand):
         try:
             importer = IMPORTERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]
         except KeyError:
-            print 'Sorry, database engine "%s" is not supported' % \
-                    settings.DATABASE_ENGINE
+            sys.stderr.write('Sorry, database engine "%s" is not supported' % \
+                             settings.DATABASE_ENGINE)
             sys.exit(1)
         
         if options['flush']:
             call_command('flush')
         
+        if self.verbosity > 1:
+            verbose = True
+        else:
+            verbose = False
+        
         try:
-            imp = importer(host=settings.DATABASES['default'].get('HOST',None),
+            imp = importer(
+                host=settings.DATABASES['default'].get('HOST',None),
                 user=settings.DATABASES['default']['USER'],
                 password=settings.DATABASES['default']['PASSWORD'],
                 db=settings.DATABASES['default']['NAME'],
-                tmpdir=options['tmpdir'])
+                tmpdir=options['tmpdir'],
+                verbose=verbose,
+            )
         except AttributeError:
-            imp = importer(host=settings.DATABASE_HOST,
+            imp = importer(
+                host=settings.DATABASE_HOST,
                 user=settings.DATABASE_USER,
                 password=settings.DATABASE_PASSWORD,
                 db=settings.DATABASE_NAME,
-                tmpdir=options['tmpdir'])
+                tmpdir=options['tmpdir'],
+                verbose=verbose,
+            )
 
         imp.fetch()
         imp.get_db_conn()
