@@ -459,7 +459,7 @@ class GeonamesImporter(object):
                     except KeyError:
                         pass
                 try:
-                    self.cursor.execute(u'INSERT INTO geoname (id, name, ascii_name, point, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (id, name, ascii_name, self.make_point(longitude, latitude), fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
+                    self.cursor.execute(u"INSERT INTO geoname (id, name, ascii_name, point, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, GeomFromText(%s, 4326), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (id, name, ascii_name, 'POINT(%s %s)' % (longitude, latitude), fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
                         if self.verbose:
@@ -603,9 +603,6 @@ class PsycoPg2Importer(GeonamesImporter):
     
     def set_import_date(self):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
-    
-    def make_point(self, lat, lng):
-        return 'ST_MakePoint(%s, %s)' % (lng, lat)
 
 class MySQLImporter(GeonamesImporter):
     
@@ -719,9 +716,6 @@ class MySQLImporter(GeonamesImporter):
     
     def set_import_date(self):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( Now() )')
-    
-    def make_point(self, lat, lng):
-        return "GeomFromText('POINT(%s %s)')" % (lng, lat)
 
 IMPORTERS = {
     'django.contrib.gis.db.backends.postgis': PsycoPg2Importer,
