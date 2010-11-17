@@ -37,6 +37,7 @@ def geocode(query, first=True):
                 return results[0]
             return results
 
+
 def reverse_geocode(lat, lng):
     """
     A simple reverse geocoder that returns the Geoname closest to the given

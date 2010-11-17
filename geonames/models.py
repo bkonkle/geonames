@@ -177,7 +177,8 @@ class GeonameManager(models.GeoManager):
     
     def near_point(self, lat, lng, kms=20, order=True):
         qs = self.get_query_set()
-        point = Point(float(lat), float(lng))
+        # Longitude is the X coordinate, latitude is Y
+        point = Point(float(lng), float(lat))
         return qs.filter(point__distance_lte=(point, D(km=kms)))
 
 
@@ -187,7 +188,7 @@ class Geoname(models.Model):
     ascii_name = models.CharField(max_length=200)
     latitude = models.DecimalField(max_digits=20, decimal_places=17)
     longitude = models.DecimalField(max_digits=20, decimal_places=17)
-    point = models.PointField(null=True, blank=True)
+    point = models.PointField()
     fclass = models.CharField(max_length=1, db_index=True)
     fcode = models.ForeignKey('FeatureCode', null=True, to_field='code', db_column='fcode', db_index=True)
     country = models.ForeignKey('Country', null=True, db_index=True, related_name='geoname_set')
