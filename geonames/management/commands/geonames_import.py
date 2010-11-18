@@ -526,6 +526,7 @@ class PsycoPg2Importer(GeonamesImporter):
         self.end_stmts = []
 
     def pre_import(self):
+        import psycopg2
         import re
         from django.core.management.color import no_style
         from django.core.management.sql import sql_all
@@ -618,9 +619,8 @@ class PsycoPg2Importer(GeonamesImporter):
     
     def process_alt_names(self, values):
         from psycopg2.extensions import adapt
-        escaped_values = ', '.join('(%s, %s, %s, %s, %s, %s)' %
-                                   tuple(map(adapt, row)) for row in values)
-        self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES %s;' % escaped_values)
+        escaped_values = ', '.join('(%s, %s, %s, %s, %s, %s)' % tuple(map(adapt, row)) for row in values)
+        self.cursor.execute('INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES %s;' % escaped_values)
 
 
 class MySQLImporter(GeonamesImporter):
