@@ -31,6 +31,12 @@ CONTINENT_CODES = [
     ('AN', 'Antarctica', 6255152),
 ]
 
+def batch_process(iterable, size):
+    """Convenience method for efficient batch processing."""
+    iterator = iter(iterable)
+    while True:
+        yield [iterator.next() for i in range(size)]
+
 class GeonamesImporter(object):
     
     def __init__(self, host=None, user=None, password=None, db=None,
@@ -152,14 +158,10 @@ class GeonamesImporter(object):
         if self.verbose:
             print 'Importing alternate names (this is going to take a while)'
         if hasattr(self,'import_file'):
-            self.import_file('alternate_name','alternateNames.txt')
-        with open('alternateNames.txt') as fd:
-            i = 0
-            for line in fd:
-                i += 1
-                if i % 50000 == 0:
-                    sys.stdout.write('.')
-                    sys.stdout.flush()
+            return self.import_file('alternate_name','alternateNames.txt')
+        
+        def generate_values(batch):
+            for line in batch:
                 id, geoname_id, lang, name, preferred, short = line.split('\t')
                 if preferred in ('', '0'):
                     preferred = False
@@ -169,17 +171,28 @@ class GeonamesImporter(object):
                     short = False
                 else:
                     short = True
+                yield (id, geoname_id, lang, name, preferred, short)
+        
+        with open('alternateNames.txt') as fd:
+            for batch in batch_process(fd, 50000):
+                values = generate_values(batch)
                 try:
-                    self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', (id, geoname_id, lang, name, preferred, short))
+                    self.process_alt_names(values)
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
                         if self.verbose:
                             print "Skipping - data already populated"
                         return True
-                    self.handle_exception(e, line)
+                    self.handle_exception(e)
+                sys.stdout.write('.')
+                sys.stdout.flush()
         if self.verbose:
             print '\n%d alternate names imported' % self.table_count('alternate_name')
-
+    
+    def process_alt_names(self, values):
+        for row in values:
+            self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES (%s, %s, %s, %s, %s, %s)', row)
+    
     def import_time_zones(self):
         if self.verbose:
             print 'Importing time zones'
@@ -602,6 +615,13 @@ class PsycoPg2Importer(GeonamesImporter):
     
     def set_import_date(self):
         self.cursor.execute('INSERT INTO geonames_update (updated_date) VALUES ( CURRENT_DATE AT TIME ZONE \'UTC\')')
+    
+    def process_alt_names(self, values):
+        from psycopg2.extensions import adapt
+        escaped_values = ', '.join('(%s, %s, %s, %s, %s, %s)' %
+                                   tuple(map(adapt, row)) for row in values)
+        self.cursor.execute(u'INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES %s;' % escaped_values)
+
 
 class MySQLImporter(GeonamesImporter):
     
@@ -750,7 +770,7 @@ class Command(BaseCommand):
         if options['flush']:
             call_command('flush')
         
-        if options['verbosity'] > 1:
+        if int(options['verbosity']) > 1:
             verbose = True
         else:
             verbose = False
