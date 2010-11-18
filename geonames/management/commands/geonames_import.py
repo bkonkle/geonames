@@ -174,7 +174,7 @@ class GeonamesImporter(object):
                 yield (id, geoname_id, lang, name, preferred, short)
         
         with open('alternateNames.txt') as fd:
-            for batch in batch_process(fd, 50000):
+            for batch in batch_process(fd, 100000):
                 values = generate_values(batch)
                 try:
                     self.process_alt_names(values)
@@ -414,13 +414,9 @@ class GeonamesImporter(object):
     def import_geonames(self):
         if self.verbose:
             print 'Importing geonames (this is going to take a while)'
-        with open('allCountries.txt') as fd:
-            i = 0
-            for line in fd:
-                i += 1
-                if i % 100000 == 0:
-                    sys.stdout.write('.')
-                    sys.stdout.flush()
+        
+        def generate_values(batch):
+            for line in batch:
                 fields = line.split('\t')
                 id, name, ascii_name = fields[:3]
                 latitude, longitude, fclass, fcode, country_id, cc2 = fields[4:10]
@@ -471,16 +467,29 @@ class GeonamesImporter(object):
                         admin4_id = self.admin4_codes[country_id][admin1][admin2][admin3][admin4]
                     except KeyError:
                         pass
+                
+                yield (id, name, ascii_name, 'POINT(%s %s)' % (longitude, latitude), fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate)
+            
+        
+        with open('allCountries.txt') as fd:
+            for batch in batch_process(fd, 100000):
+                values = generate_values(batch)
                 try:
-                    self.cursor.execute(u"INSERT INTO geoname (id, name, ascii_name, point, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, GeomFromText(%s, 4326), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (id, name, ascii_name, 'POINT(%s %s)' % (longitude, latitude), fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate))
+                    self.process_geonames(values)
                 except Exception, e:
                     if 'duplicate' in str(e).lower():
                         if self.verbose:
                             print "Skipping - data already populated"
                         return True
                     self.handle_exception(e, line)
+                sys.stdout.write('.')
+                sys.stdout.flush()
         if self.verbose:
             print '\n%d geonames imported' % self.table_count('geoname')
+    
+    def process_geonames(self, values):
+        for row in values:
+            self.cursor.execute(u"INSERT INTO geoname (id, name, ascii_name, point, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES (%s, %s, %s, GeomFromText(%s, 4326), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", row)
 
     def import_all(self):
         self.pre_import()
@@ -620,7 +629,13 @@ class PsycoPg2Importer(GeonamesImporter):
     def process_alt_names(self, values):
         from psycopg2.extensions import adapt
         escaped_values = ', '.join('(%s, %s, %s, %s, %s, %s)' % tuple(map(adapt, row)) for row in values)
-        self.cursor.execute('INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES %s;' % escaped_values)
+        self.cursor.execute('INSERT INTO alternate_name (id, geoname_id, language, name, preferred, short) VALUES %s' % escaped_values)
+    
+    def process_geonames(self, values):
+        from psycopg2.extensions import adapt
+        escaped_values = ', '.join('(%s, %s, %s, GeomFromText(%s, 4326), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % tuple(map(adapt, row)) for row in values)
+        for row in values:
+            self.cursor.execute('INSERT INTO geoname (id, name, ascii_name, point, fclass, fcode, country_id, cc2, admin1_id, admin2_id, admin3_id, admin4_id, population, elevation, gtopo30, timezone_id, moddate) VALUES %s' % escaped_values)
 
 
 class MySQLImporter(GeonamesImporter):
