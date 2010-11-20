@@ -400,7 +400,7 @@ class GeonameAlternateName(models.Model):
 class Continent(models.Model):
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=20)
-    geoname = models.ForeignKey(Geoname, unique=True)
+    geoname = models.ForeignKey(Geoname, unique=True, null=True)
 
     class Meta:
         db_table = 'continent'
@@ -425,7 +425,8 @@ class Country(models.Model):
     postal_code_fmt = models.CharField(max_length=64, null=True)
     postal_code_re = models.CharField(max_length=256, null=True)
     languages = models.CharField(max_length=200)
-    geoname = models.ForeignKey(Geoname, related_name='this_country')
+    geoname = models.ForeignKey(Geoname, related_name='this_country',
+                                null=True)
     neighbours = models.ManyToManyField('self')
 
     class Meta:
@@ -445,7 +446,7 @@ class Language(models.Model):
 
 class Admin1Code(models.Model):
     country = models.ForeignKey(Country, db_index=True)
-    geoname = models.ForeignKey(Geoname, db_index=True)
+    geoname = models.ForeignKey(Geoname, db_index=True, null=True)
     code = models.CharField(max_length=5)
     name = models.TextField()
     ascii_name = models.TextField()
@@ -459,7 +460,7 @@ class Admin1Code(models.Model):
 class Admin2Code(models.Model):
     country = models.ForeignKey(Country, db_index=True)
     admin1 = models.ForeignKey(Admin1Code, null=True)
-    geoname = models.ForeignKey(Geoname, db_index=True)
+    geoname = models.ForeignKey(Geoname, db_index=True, null=True)
     code = models.CharField(max_length=30)
     name = models.TextField()
     ascii_name = models.TextField()

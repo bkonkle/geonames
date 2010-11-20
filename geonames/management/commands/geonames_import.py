@@ -11,30 +11,32 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import connections, DEFAULT_DB_ALIAS
 
+PREFIX = 'http://download.geonames.org/export/dump/'
+
 FILES = [
-    'http://download.geonames.org/export/dump/allCountries.zip',
-    'http://download.geonames.org/export/dump/alternateNames.zip',
-    'http://download.geonames.org/export/dump/admin1CodesASCII.txt',
-    'http://download.geonames.org/export/dump/admin2Codes.txt',
-    'http://download.geonames.org/export/dump/featureCodes_en.txt',
-    'http://download.geonames.org/export/dump/timeZones.txt',
-    'http://download.geonames.org/export/dump/countryInfo.txt',
+    PREFIX + 'allCountries.zip',
+    PREFIX + 'alternateNames.zip',
+    PREFIX + 'admin1CodesASCII.txt',
+    PREFIX + 'admin2Codes.txt',
+    PREFIX + 'featureCodes_en.txt',
+    PREFIX + 'timeZones.txt',
+    PREFIX + 'countryInfo.txt',
 ]
 
 CONTINENT_CODES = [
-    ('AF', 'Africa' , 6255146),
-    ('AS', 'Asia', 6255147),
-    ('EU', 'Europe', 6255148),
-    ('NA', 'North America', 6255149),
-    ('OC', 'Oceania', 6255151),
-    ('SA', 'South America', 6255150),
-    ('AN', 'Antarctica', 6255152),
+    ['AF', 'Africa' , 6255146],
+    ['AS', 'Asia', 6255147],
+    ['EU', 'Europe', 6255148],
+    ['NA', 'North America', 6255149],
+    ['OC', 'Oceania', 6255151],
+    ['SA', 'South America', 6255150],
+    ['AN', 'Antarctica', 6255152],
 ]
 
 class GeonamesImporter(object):
     
     def __init__(self, host=None, user=None, password=None, db=None,
-                 tmpdir='tmp', verbose=False):
+                 tmpdir='tmp', verbose=False, skip_altnames=False, cities=None):
         self.user = user
         self.password = password
         self.db = db
@@ -48,6 +50,23 @@ class GeonamesImporter(object):
         self.admin3_codes = {}
         self.admin4_codes = {}
         self.verbose = verbose
+        self.skip_altnames = bool(cities) or skip_altnames
+        self.cities = cities
+        self.geonames_file = 'allCountries.zip'
+        
+        self.zip_files = [self.geonames_file, 'alternateNames.zip']
+        
+        if self.skip_altnames or self.cities:
+            FILES.remove(PREFIX + 'alternateNames.zip')
+            self.zip_files.remove('alternateNames.zip')
+            FILES.append(PREFIX + 'iso-languagecodes.txt',)
+        if self.cities:
+            FILES.remove(PREFIX + self.geonames_file)
+            self.zip_files.remove(self.geonames_file)
+            
+            FILES.append(PREFIX + 'cities%s.zip' % self.cities)
+            self.zip_files.append('cities%s.zip' % self.cities)
+            self.geonames_file = 'cities%s.txt' % self.cities
     
     def pre_import(self):
         pass
@@ -85,7 +104,7 @@ class GeonamesImporter(object):
                 sys.stderr.write('Error fetching %s' % os.path.basename(f))
                 sys.exit(1)
 
-        for f in ('allCountries.zip', 'alternateNames.zip'):
+        for f in self.zip_files:
             if os.system('unzip %s' % f) != 0:
                 sys.stderr.write('Error unzipping %s' % f)
                 sys.exit(1)
@@ -202,6 +221,8 @@ class GeonamesImporter(object):
 
     def import_continent_codes(self):
         for continent in CONTINENT_CODES:
+            if self.cities:
+                continent[2] = None
             try:
                 self.cursor.execute(u'INSERT INTO continent (code, name, geoname_id) VALUES (%s, %s, %s)', continent)
             except Exception, e:
@@ -227,6 +248,8 @@ class GeonamesImporter(object):
                 fields[7] = fields[7].replace(',', '')
                 if fields[6] == '':
                     fields[6] = 0
+                if self.cities:
+                    fields[16] = None
                 try:
                     self.cursor.execute(u'INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', fields[:17])
                 except Exception, e:
@@ -252,6 +275,8 @@ class GeonamesImporter(object):
                     name = unicode(name,'utf-8')
                 except Exception, e:
                     self.handle_exception(e, line)
+                if self.cities:
+                    geoname_id = None
                 try:
                     self.cursor.execute(u'INSERT INTO admin1_code (country_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s)', (country_id, geoname_id, code, name, ascii_name))
                 except Exception, e:
@@ -281,6 +306,8 @@ class GeonamesImporter(object):
                     admin1 = self.admin1_codes[country_id][adm1]
                 except KeyError:
                     admin1 = None
+                if self.cities:
+                    geoname_id = None
                 try:
                     self.cursor.execute(u'INSERT INTO admin2_code (country_id, admin1_id, geoname_id, code, name, ascii_name) VALUES (%s, %s, %s, %s, %s, %s)', (country_id, admin1, geoname_id, code, name, ascii_name))
                 except Exception, e:
@@ -299,7 +326,7 @@ class GeonamesImporter(object):
     def import_third_level_adm(self):
         if self.verbose:
             print 'Importing third level administrative divisions'
-        with open('allCountries.txt') as fd:
+        with open(self.geonames_file) as fd:
             for line in fd:
                 fields = line.split('\t')
                 fcode = fields[7]
@@ -346,7 +373,7 @@ class GeonamesImporter(object):
     def import_fourth_level_adm(self):
         if self.verbose:
             print 'Importing fourth level administrative divisions'
-        with open('allCountries.txt') as fd:
+        with open(self.geonames_file) as fd:
             for line in fd:
                 fields = line.split('\t')
                 fcode = fields[7]
@@ -400,11 +427,11 @@ class GeonamesImporter(object):
     def import_geonames(self):
         if self.verbose:
             print 'Importing geonames (this is going to take a while)'
-        with open('allCountries.txt') as fd:
+        with open(self.geonames_file) as fd:
             i = 0
             for line in fd:
                 i += 1
-                if i % 100000 == 0:
+                if i % (self.cities and 10000 or 100000) == 0:
                     sys.stdout.write('.')
                     sys.stdout.flush()
                 fields = line.split('\t')
@@ -476,9 +503,10 @@ class GeonamesImporter(object):
         self.begin()
         self.import_language_codes()
         self.commit()
-        self.begin()
-        self.import_alternate_names()
-        self.commit()
+        if not self.skip_altnames:
+            self.begin()
+            self.import_alternate_names()
+            self.commit()
         self.begin()
         self.import_time_zones()
         self.commit()
@@ -494,12 +522,13 @@ class GeonamesImporter(object):
         self.begin()
         self.import_second_level_adm()
         self.commit()
-        self.begin()
-        self.import_third_level_adm()
-        self.commit()
-        self.begin()
-        self.import_fourth_level_adm()
-        self.commit()
+        if not self.cities:
+            self.begin()
+            self.import_third_level_adm()
+            self.commit()
+            self.begin()
+            self.import_fourth_level_adm()
+            self.commit()
         self.begin()
         self.import_geonames()
         self.commit()
@@ -572,10 +601,11 @@ class PsycoPg2Importer(GeonamesImporter):
 
     def insert_dummy_records(self):
         self.cursor.execute("UPDATE geoname SET country_id='' WHERE country_id IN (' ', '  ')")
-        self.cursor.execute("DELETE FROM country WHERE geoname_id=6295630 or iso_numeric=-1")
-        self.cursor.execute("DELETE FROM continent WHERE geoname_id=6295630")
-        self.cursor.execute("INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES ('', '', -1, '', 'No country', 'No capital', 0, 0, '', '', '', '', '', '', '', '', 6295630)")
-        self.cursor.execute("INSERT INTO continent VALUES('', 'No continent', 6295630)")
+        if not self.cities:
+            self.cursor.execute("DELETE FROM country WHERE geoname_id=6295630 or iso_numeric=-1")
+            self.cursor.execute("DELETE FROM continent WHERE geoname_id=6295630")
+            self.cursor.execute("INSERT INTO country (iso_alpha2, iso_alpha3, iso_numeric, fips_code, name, capital, area, population, continent_id, tld, currency_code, currency_name, phone_prefix, postal_code_fmt, postal_code_re, languages, geoname_id) VALUES ('', '', -1, '', 'No country', 'No capital', 0, 0, '', '', '', '', '', '', '', '', 6295630)")
+            self.cursor.execute("INSERT INTO continent VALUES('', 'No continent', 6295630)")
 
     def begin(self):
         self.cursor.execute('BEGIN')
@@ -738,6 +768,18 @@ class Command(BaseCommand):
             default=False,
             help='Flush the database, removing all data, before importing.',
         ),
+        optparse.make_option('--skip-altnames',
+            action='store_true',
+            dest='skip_altnames',
+            default=False,
+            help='Skip the alternate names import.',
+        ),
+        optparse.make_option('--cities',
+            type='choice',
+            choices=('1000', '5000', '15000'),
+            dest='cities',
+            help='Choose one of the much smaller "cities" files. Implies --skip-altnames.',
+        ),
     )
 
     def handle(self, *args, **options):
@@ -764,6 +806,8 @@ class Command(BaseCommand):
                 db=settings.DATABASES['default']['NAME'],
                 tmpdir=options['tmpdir'],
                 verbose=verbose,
+                skip_altnames=options['skip_altnames'],
+                cities=options.get('cities', None),
             )
         except AttributeError:
             imp = importer(
@@ -773,6 +817,8 @@ class Command(BaseCommand):
                 db=settings.DATABASE_NAME,
                 tmpdir=options['tmpdir'],
                 verbose=verbose,
+                skip_altnames=options['skip_altnames'],
+                cities=options.get('cities', None),
             )
 
         imp.fetch()
