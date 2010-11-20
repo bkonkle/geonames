@@ -29,15 +29,15 @@ def geocode(query, first=True):
         state = match.groupdict()['state']
         if city and state:
             filters = {}
-            if number and street:
-                # TODO
-                pass
+            filters.update({'name__iexact': city})
+            if len(state) == 2:
+                filters.update({'admin1__code__iexact': state})
             else:
-                filters.update({'name__iexact': city})
-                if len(state) == 2:
-                    filters.update({'admin1__code__iexact': state})
-                else:
-                    filters.update({'admin1__name__iexact': state})
+                filters.update({'admin1__name__iexact': state})
+            if number and street:
+                # The geonames database doesn't actually include street and
+                # street number, so they can be ignored.
+                pass
             results = Geoname.objects.filter(**filters)
             if first and results:
                 return results[0]
@@ -78,11 +78,9 @@ def geocode(query, first=True):
             return results
 
 
-def reverse_geocode(lat, lng):
+def reverse_geocode(lat, lng, cities=False):
     """
     A simple reverse geocoder that returns the Geoname closest to the given
-    coordinates.
+    coordinates.  Will optionally search only cities.
     """
-    results = Geoname.objects.near_point(lat, lng)
-    if results:
-        return results[0]
+    return Geoname.objects.closest_to_point(lat, lng, cities=cities)

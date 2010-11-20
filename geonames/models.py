@@ -63,9 +63,12 @@ def get_geo_translate_func():
 geo_translate_func = get_geo_translate_func()
 
 
-class GeonameGISHelper(object):
-
-    def near_point(self, latitude, longitude, kms, order):
+class GeonameManager(models.GeoManager):
+    
+    def near_point(self, lat, lng, kms, order):
+        raise NotImplementedError
+    
+    def closest_to_point(self, lat, lng):
         raise NotImplementedError
 
     def aprox_tz(self, latitude, longitude):
@@ -85,10 +88,56 @@ class GeonameGISHelper(object):
 
     def box_tz(self, cursor, minlat, maxlat, minlng, maxlng):
         raise NotImplementedError
+    
+    def exclude_political_entities(self):
+        return self.get_query_set().exclude(
+            fcode__in=('PCLI', 'PCL', 'PCLD', 'CONT')
+        )
 
 
-class MySQLGeonameGISHelper(GeonameGISHelper):
+class PgSQLGeonameManager(GeonameManager):
+    
+    def box(self, minlat, maxlat, minlng, maxlng):
+        return 'SetSRID(MakeBox2D(MakePoint(%s, %s), MakePoint(%s, %s)), 4326)' % \
+            (minlng, minlat, maxlng, maxlat)
 
+    def box_tz(self, cursor, minlat, maxlat, minlng, maxlng):
+        print('SELECT timezone_id FROM geoname WHERE ST_Within(gpoint, %(box)s) ' \
+            'AND timezone_id IS NOT NULL LIMIT 1' % \
+            {
+                'box': self.box(minlat, maxlat, minlng, maxlng),
+            }
+        )
+        cursor.execute('SELECT timezone_id FROM geoname WHERE ST_Within(gpoint, %(box)s) ' \
+            'AND timezone_id IS NOT NULL LIMIT 1' % \
+            {
+                'box': self.box(minlat, maxlat, minlng, maxlng),
+            }
+        )
+        row = cursor.fetchone()
+        if row:
+            return Timezone.objects.get(pk=row[0])
+
+        return None
+    
+    def near_point(self, lat, lng, kms=5, order=True):
+        qs = self.exclude_political_entities()
+        point = Point(float(lng), float(lat))
+        if order:
+            qs = qs.distance(point).order_by('distance')
+        return qs.filter(point__dwithin=(point, kms * 1000))
+
+    def closest_to_point(self, lat, lng, cities=False):
+        qs = self.exclude_political_entities()
+        # Longitude is the X coordinate, latitude is Y
+        point = Point(float(lng), float(lat))
+        if cities:
+            qs = qs.filter(fclass='P')
+        return qs.distance(point).order_by('distance')[0]
+
+
+class MySQLGeonameManager(GeonameManager):
+    
     def near_point(self, latitude, longitude, kms, order):
         from math import degrees, radians
         EARTH_RADIUS=3956.547
@@ -114,72 +163,16 @@ class MySQLGeonameGISHelper(GeonameGISHelper):
         return near_objects
 
 
-class PgSQLGeonameGISHelper(GeonameGISHelper):
-    
-    def box(self, minlat, maxlat, minlng, maxlng):
-        return 'SetSRID(MakeBox2D(MakePoint(%s, %s), MakePoint(%s, %s)), 4326)' % \
-            (minlng, minlat, maxlng, maxlat)
-
-    def near_point(self, latitude, longitude, kms, order):
-        cursor = connection.cursor()
-        point = 'Transform(SetSRID(MakePoint(%s, %s), 4326), 32661)' % (longitude, latitude)
-        ord = ''
-        if order:
-            ord = 'ORDER BY distance(%s, gpoint_meters)' % point
-        cursor.execute('SELECT %(fields)s, distance(%(point)s, gpoint_meters) ' \
-                'FROM geoname WHERE fcode NOT IN (%(excluded)s) AND ' \
-                'ST_DWithin(%(point)s, gpoint_meters, %(meters)s)' \
-                '%(order)s' %  \
-            {
-                'fields': Geoname.select_fields(),
-                'point': point,
-                'excluded': "'PCLI', 'PCL', 'PCLD', 'CONT'",
-                'meters': kms * 1000,
-                'order': ord,
-            }
-        )
-
-        return [(Geoname(*row[:-1]), row[-1]) for row in cursor.fetchall()]
-
-    def box_tz(self, cursor, minlat, maxlat, minlng, maxlng):
-        print('SELECT timezone_id FROM geoname WHERE ST_Within(gpoint, %(box)s) ' \
-            'AND timezone_id IS NOT NULL LIMIT 1' % \
-            {
-                'box': self.box(minlat, maxlat, minlng, maxlng),
-            }
-        )
-        cursor.execute('SELECT timezone_id FROM geoname WHERE ST_Within(gpoint, %(box)s) ' \
-            'AND timezone_id IS NOT NULL LIMIT 1' % \
-            {
-                'box': self.box(minlat, maxlat, minlng, maxlng),
-            }
-        )
-        row = cursor.fetchone()
-        if row:
-            return Timezone.objects.get(pk=row[0])
-
-        return None
-
-
-GIS_HELPERS = {
-    'django.contrib.gis.db.backends.mysql': MySQLGeonameGISHelper,
-    'django.contrib.gis.db.backends.postgis': PgSQLGeonameGISHelper,
+GEONAME_MANAGERS = {
+    'django.contrib.gis.db.backends.mysql': MySQLGeonameManager,
+    'django.contrib.gis.db.backends.postgis': PgSQLGeonameManager,
 }
 
 
 try:
-    GISHelper = GIS_HELPERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]()
+    ManagerForBackend = GEONAME_MANAGERS[(settings.DATABASES and settings.DATABASES['default']['ENGINE']) or settings.DATABASE_ENGINE]
 except (KeyError,AttributeError):
     print 'Sorry, your database backend is not supported by the Geonames application'
-
-
-class GeonameManager(models.GeoManager):
-    
-    def near_point(self, lat, lng, kms=20, order=True):
-        qs = self.get_query_set()
-        # Longitude is the X coordinate, latitude is Y
-        point = Point(float(lng), float(lat))
-        return qs.filter(point__distance_lte=(point, D(km=kms)))
 
 
 class Geoname(models.Model):
@@ -201,7 +194,7 @@ class Geoname(models.Model):
     timezone = models.ForeignKey('Timezone', null=True)
     moddate = models.DateField()
 
-    objects = GeonameManager()
+    objects = ManagerForBackend()
 
     class Meta:
         db_table = 'geoname'
@@ -375,7 +368,7 @@ class Geoname(models.Model):
         return Geoname.distance_points(self.latitude, self.longitude, other.latitude, other.longitude)
     
     def near_me(self, kms=20, order=True):
-        return Geoname.object.near_point(self.latitude, self.longitude, kms=kms, order=order).exclude(pk=self.pk)
+        return Geoname.objects.near_point(self.latitude, self.longitude, kms=kms, order=order).exclude(pk=self.pk)
 
     @staticmethod
     def select_fields():
