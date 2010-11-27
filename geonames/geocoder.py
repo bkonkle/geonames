@@ -79,8 +79,10 @@ def geocode(query, first=True):
                 return results[0]
             return results
     
-    # Try the name directly
-    results = Geoname.objects.filter(name__iexact=query)
+    # Try the name directly, and sort the results by population
+    results = Geoname.objects.filter(
+        name__iexact=query
+    ).order_by('-population')
     if first and results:
         return results[0]
     return results
