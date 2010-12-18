@@ -15,10 +15,9 @@ city_country_re = re.compile(r'(?P<city>[\w\s]+?),?\s+(?P<country>[\w\s]+)', re.
 
 def geocode(query, first=True):
     """
-    A simple geocoding function which tries to understand the query passed to
-    it, and then look for a Geoname object to match it.  By default, it returns
-    the first result.  If first is False, however, it returns a list of all
-    results.
+    A geocoding function which tries to understand the query passed to it, and
+    then look for a Geoname object to match it. By default, it returns the
+    first result. If first is False, however, it returns a list of all results.
     """
     # Check for a US Address or 'City, State'
     match = us_address_re.match(query)
@@ -39,9 +38,10 @@ def geocode(query, first=True):
                 # street number, so they can be ignored.
                 pass
             results = Geoname.objects.filter(**filters)
-            if first and results:
-                return results[0]
-            return results
+            if results:
+                if first:
+                    return results[0]
+                return results
     
     # Check for Canadian 'City, Province'
     match = can_city_prov_re.match(query)
@@ -55,9 +55,10 @@ def geocode(query, first=True):
             else:
                 filters.update({'admin1__name__iexact': province})
             results = Geoname.objects.filter(**filters)
-            if first and results:
-                return results[0]
-            return results
+            if results:
+                if first:
+                    return results[0]
+                return results
     
     # Check for 'City, Country'
     match = city_country_re.match(query)
@@ -75,9 +76,10 @@ def geocode(query, first=True):
             else:
                 filters.update({'country__name__iexact': country})
             results = Geoname.objects.filter(**filters)
-            if first and results:
-                return results[0]
-            return results
+            if results:
+                if first:
+                    return results[0]
+                return results
     
     # Try the name directly
     results = Geoname.objects.filter(name__iexact=query)
