@@ -19,6 +19,21 @@ def geocode(query, first=True):
     then look for a Geoname object to match it. By default, it returns the
     first result. If first is False, however, it returns a list of all results.
     """
+    # If the query is two or three letters, try the appropriate ISO code first
+    try:
+        if len(query) == 2:
+            country = Country.objects.select_related().get(
+                iso_alpha2__iexact=query
+            )
+            return country.geoname
+        elif len(query) == 3:
+            country = Country.objects.select_related().get(
+                iso_alpha3__iexact=query
+            )
+            return country.geoname
+    except Country.DoesNotExist:
+        pass
+    
     # Check for a US Address or 'City, State'
     match = us_address_re.match(query)
     if match:
@@ -83,7 +98,7 @@ def geocode(query, first=True):
     
     # Try the name directly, and sort the results by population
     results = Geoname.objects.filter(
-        name__iexact=query
+        name__icontains=query
     ).order_by('-population')
     if first and results:
         return results[0]
