@@ -67,6 +67,9 @@ class GeonamesImporter(object):
             FILES.append(PREFIX + 'cities%s.zip' % self.cities)
             self.zip_files.append('cities%s.zip' % self.cities)
             self.geonames_file = 'cities%s.txt' % self.cities
+        
+        import ipdb
+        ipdb.set_trace()
     
     def pre_import(self):
         pass

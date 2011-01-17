@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 
 from geonames.models import Geoname, GeonameAlternateName, Country
@@ -7,7 +8,7 @@ us_states = 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Del
 us_address_re = re.compile(r'(?:(?P<number>\d+)\s+(?P<street>[\w\s]+),?\s+)?(?P<city>[\w\s]+),?\s+(?P<state>%s|%s)' % (us_states, us_state_abbrs), re.I)
 
 can_prov_abbrs = 'AB|BC|MB|NB|NL|NT|NS|NU|ON|PE|QC|SK|YT'
-can_provinces = 'Alberta|British Columbia|Manitoba|New Brunswick|Newfoundland and Labrador|Northwest Territories|Nova Scotia|Nunavut|Ontario|Prince Edward Island|Quebec|Saskatchewan|Yukon'
+can_provinces = 'Alberta|British Columbia|Manitoba|New Brunswick|Newfoundland and Labrador|Northwest Territories|Nova Scotia|Nunavut|Ontario|Prince Edward Island|Quebec|Québec|Saskatchewan|Yukon'
 can_city_prov_re = re.compile(r'(?P<city>[\w\s]+),?\s+(?P<province>%s|%s)' % (can_provinces, can_prov_abbrs), re.I)
 
 city_country_re = re.compile(r'(?P<city>[\w\s]+?),?\s+(?P<country>[\w\s]+)', re.I)
@@ -19,6 +20,10 @@ def geocode(query, first=True):
     then look for a Geoname object to match it. By default, it returns the
     first result. If first is False, however, it returns a list of all results.
     """
+    # Quick fix for Québec
+    query = query.replace('Quebec', u'Québec')
+    query = query.replace('quebec', u'Québec')
+    
     # If the query is two or three letters, try the appropriate ISO code first
     try:
         if len(query) == 2:
